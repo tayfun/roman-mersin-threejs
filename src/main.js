@@ -334,7 +334,7 @@ function flyTo(target, camPos, dur = 2.4, onDone) {
 const OVERVIEW = { target: new THREE.Vector3(8, 0, 22), pos: new THREE.Vector3(-18, 118, 196) };
 function overviewPose() {
   // pull back further on narrow screens so the whole coast fits
-  const k = Math.max(1, 1.62 / camera.aspect);
+  const k = Math.max(1, 1.76 / camera.aspect);
   const off = OVERVIEW.pos.clone().sub(OVERVIEW.target);
   if (camera.aspect < 1) off.set(0, 190, 130); // portrait: look more steeply down
   return { target: OVERVIEW.target, pos: OVERVIEW.target.clone().add(off.multiplyScalar(k)) };
