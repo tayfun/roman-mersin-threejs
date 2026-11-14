@@ -16,7 +16,8 @@ npm run build    # static site in dist/
 ## How it is built
 - `public/heightmap.png` — real elevation (SRTM via Mapzen Terrarium tiles), built by `tools/build_heightmap.py`.
 - `src/terrain.js` — terrain mesh, hypsometric colouring, animated sea.
-- `src/monuments.js` — procedural miniature of each site, based on its standing remains.
+- `src/monuments/` — one procedural diorama per site (`<site>.js`), built from its standing remains with the shared modelling kit in `kit.js` (textured masonry, columns, theatres, vaults, rock faces, sculpted terrain bases).
+- `preview.html` — dev-only page that renders one diorama on its own: `npm run dev`, then `/preview.html?m=soli&a=20&e=30&d=3` (`tools/model_shots.mjs` captures a set of views).
 - `src/sites.js` — site texts, each claim keyed to a source.
 - `public/audio/` — narration, ambience and music generated with ElevenLabs by `tools/generate_audio.py`
   (`ELEVENLABS_API_KEY=… python3 tools/generate_audio.py`; the key is read from the environment and never stored).
