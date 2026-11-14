@@ -48,7 +48,7 @@ Alahan monastery (late antique), Mezgitkale and the Demircili/Imbriogon tombs, N
 - Livius.org, "Olba / Diocaesarea" — https://livius.org/articles/place/olba-diocaesarea
 - Lonely Planet, "Uzuncaburç Ruins" (theatre capacity) — https://www.lonelyplanet.com/turkey/uzuncaburc/attractions/uzuncaburc-ruins/a/poi-sig/1250521/1324932
 - **Used:** Hellenistic peripteral Temple of Zeus Olbios, converted to a church in the 5th c.; Temple of Tyche (1st c. AD, donors Oppius and Kyria); theatre under Marcus Aurelius and Lucius Verus (161–169); city status under Vespasian; monumental gate; tall Hellenistic tower.
-- **Discrepancy:** standing columns of the Zeus temple are given as "36" in one source although a 6 × 12 peripteros has 32 — the panel says "some thirty". Tyche temple date: "1st century AD" vs. "reign of Vespasian or Domitian" (compatible). The 2,500-seat figure is from a guidebook only. The year AD 72 for city status and "5th century" for the church conversion come from the Ministry (Turkish Museums) page alone; Wikipedia and Livius say only "under Vespasian" — the panel now says the same (**Corrected**).
+- **Discrepancy:** standing columns of the Zeus temple are given as "36" in one source although a 6 × 12 peripteros has 32 — the panel says "some thirty". Tyche temple date: "1st century AD" vs. "reign of Vespasian or Domitian" (compatible). The 2,500-seat figure is from a guidebook only. **Corrected:** an earlier draft gave AD 72 for city status. The sources cited here (Wikipedia, Livius) say only "under Vespasian", and the Ministry page says only that it became an autonomous city in the Roman period, so the panel gives no year ("c. AD 72" appears in the Princeton Encyclopedia of Classical Sites tradition, not consulted directly). The 5th-century date for the church conversion is from the Ministry page. The tower's number of storeys is not in these sources and is not stated.
 
 ## 4. Corycian Cave (Cennet & Cehennem)
 - Wikipedia, "Cennet and Cehennem" — https://en.wikipedia.org/wiki/Cennet_and_Cehennem
@@ -61,12 +61,13 @@ Alahan monastery (late antique), Mezgitkale and the Demircili/Imbriogon tombs, N
 
 ## 5. Adamkayalar
 - Wikipedia, "Adamkayalar" — https://en.wikipedia.org/wiki/Adamkayalar
+- Hürriyet Daily News, "A hidden treasure in the Mediterranean: the Man Rocks" — https://www.hurriyetdailynews.com/a-hidden-treasure-in-the-mediterranean-the-man-rocks-65128 — banquet scenes and soldier figures.
 - **Used:** 18 figures in nine niches (eleven men, four women, two children, one ibex), two eagles on a pediment; "probably 2nd century AD"; 7 km from Kızkalesi; damaged by treasure hunters in 2019.
 
 ## 6. Corycus (Kızkalesi)
 - Wikipedia, "Corycus" — https://en.wikipedia.org/wiki/Corycus (drawing on R. W. Edwards' survey of the castles, 1982/1987)
 - **Corrected:** an earlier draft placed the naval Battle of Corycus (191 BC) here, following the Wikipedia "Corycus" article. That battle was fought off Corycus in Ionia — https://en.wikipedia.org/wiki/Battle_of_Corycus — and has been removed.
-- **Used:** port of Seleucia; Roman fleet station and mint; arch, necropolis, sarcophagi, churches; island castle re-fortified in the early 12th c. under Alexios I Komnenos; Armenian inscriptions of Levon I and Hetum I; land castle built of spolia from the Roman city.
+- **Used:** Roman fleet station and mint; arch, necropolis, sarcophagi, churches; island castle re-fortified in the early 12th c. under Alexios I Komnenos; Armenian inscriptions of Levon I and Hetum I; land castle built of spolia from the Roman city.
 - **Caveat:** the castles are medieval. They are modelled because they are the landmark, and labelled as medieval in the panel.
 
 ## 7. Elaiussa Sebaste (Ayaş)
@@ -80,8 +81,8 @@ Alahan monastery (late antique), Mezgitkale and the Demircili/Imbriogon tombs, N
 - Wikipedia, "Kanlıdivane" — https://en.wikipedia.org/wiki/Kanl%C4%B1divane
 - Turkish Museums, "Mersin Kanlı Divane (Kanytelleis) Archaeological Site" — https://turkishmuseums.com/museum/detail/2163-mersin-kanli-divane-kanytelleis-archaeological-site/2163/4
 - Showcaves.com, "Kanlıdivane" — https://showcaves.com/english/tr/karst/Kanlidivane.html
-- **Used:** sinkhole c. 130 m on the long axis; tower inscription "built by Teukros, son of Tarkyaris, priest of Olba, for Zeus"; mausoleum built by Aba for her husband and sons; basilicas; renamed Neapolis under Theodosius II.
-- **Discrepancy:** depth given as 60 m (Ministry page) and as about 70 m (Wikipedia). The panel and narration say "some 70 metres" and note the range. The source says Aba built the tomb for her husband and "sons" (no number).
+- **Used:** sinkhole c. 130 m on the long axis; tower inscription, quoted in Wikipedia's reading: "Built by Teukros, the son of priest king Tarkyaris of Olba for Zeus"; mausoleum built by Aba for her husband and sons; basilicas; renamed Neapolis under Theodosius II.
+- **Discrepancy:** size given as 130 m on the long axis (Wikipedia) and 170 × 200 m (Ministry page); depth as 60 m and as about 70 m. The panel and narration say "some 70 metres" and note the range. The source says Aba built the tomb for her husband and "sons" (no number).
 
 ## 9. Soli-Pompeiopolis
 - Wikipedia, "Soli, Cilicia" — https://en.wikipedia.org/wiki/Soli,_Cilicia
@@ -100,15 +101,16 @@ Alahan monastery (late antique), Mezgitkale and the Demircili/Imbriogon tombs, N
 - Wikipedia, "Donuktaş" — https://en.wikipedia.org/wiki/Donukta%C5%9F
 - World History Encyclopedia, "Tarsus" — https://www.worldhistory.org/Tarsus
 - Plutarch, *Life of Antony* 26 (Cleopatra's barge).
+- **Caveat:** Julian was buried outside the walls of Tarsus in 363; whether his remains were later moved to Constantinople is disputed, so the narration says only that he "was buried here".
 - **Used:** capital of the province of Cilicia from 67 BC; Antony and Cleopatra, 41 BC; birthplace of Paul (Acts 21:39); Julian buried here, AD 363; Cleopatra's Gate; basalt-paved street in the centre; Donuktaş; Roman road at Sağlıklı (c. 3 km, 2.94–3.00 m wide).
 - **Discrepancy:** Cleopatra's Gate is popularly Roman but its present fabric is attributed to the Byzantine or Abbasid period and was heavily restored in 1994. Donuktaş: 2nd-c. AD Roman temple (excavators; possibly under Commodus) vs. older "tomb of Sardanapalus" tradition.
 
 ## Map data
 - **Elevation:** Mapzen Terrarium tiles (zoom 9) from the AWS Open Data "Terrain Tiles" set — https://registry.opendata.aws/terrain-tiles/ — which here derive from SRTM (NASA/USGS, public domain). Resampled to an 800 × 574 grid by `tools/build_heightmap.py`. Vertical exaggeration ×2.6.
 - **Sea colour** is driven by distance from the coast, not by real bathymetry.
-- **Rivers** (Calycadnus/Göksu, Cydnus/Berdan, Lamos/Limonlu) are traced by `tools/trace_rivers.py` as least-elevation paths down the DEM's valley floors from a point on each river to the sea. They follow the real valleys at ~330 m resolution but are not surveyed centrelines, and the lower Göksu ends at the delta lagoon.
+- **Rivers** (Calycadnus/Göksu, Cydnus/Berdan, Lamos/Limonlu) are traced by `tools/trace_rivers.py` as least-elevation paths down the DEM's valley floors from a point on each river, through the ancient city on it (Seleucia, Tarsus), to the sea. They follow the real valleys at ~330 m resolution but are not surveyed centrelines, and the lower Göksu ends at the delta lagoon.
 - **Roman roads** are schematic: splines through attested stations (Anemurium – Kelenderis – Seleucia – Corycus – Elaiussa – Soli – Tarsus; Seleucia – Diocaesarea; Tarsus – Sağlıklı – Cilician Gates). They show connections, not surveyed alignments.
 - **Monument models** are procedural miniatures composed from the standing remains listed above; not to scale.
 
 ## Sound
-- Narration, ambience, effects and music were generated with the ElevenLabs API (`tools/generate_audio.py`): text-to-speech model `eleven_v4`, voice "George"; sound effects and music via the sound-generation and music endpoints; levels and the music loop point were then adjusted with ffmpeg (`tools/postprocess_audio.sh`). Narration scripts are in `src/narration.json` and use only facts listed above.
+- Narration, ambience, effects and music were generated with the ElevenLabs API (`tools/generate_audio.py`): text-to-speech model `eleven_v4` (the generator logs the model used per clip and every clip ran on it), voice "George"; sound effects and music via the sound-generation and music endpoints; levels and the music loop point were then adjusted with ffmpeg (`tools/postprocess_audio.sh`). Narration scripts are in `src/narration.json` and use only facts listed above.

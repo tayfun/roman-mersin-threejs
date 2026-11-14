@@ -2,7 +2,7 @@
 """Trace river courses along valley floors of the DEM.
 
 No river vector data is bundled, so each river is a least-cost path (cost grows with
-elevation) from an upstream point on the known river to the sea. This follows the real
+elevation) from an upstream point on the known river, via the ancient city on it, to the sea. This follows the real
 valley at the DEM's ~330 m resolution; it is not a surveyed centreline.
 Output: src/rivers.json  ->  {name: [[lon, lat], ...]}
 """
@@ -21,34 +21,43 @@ def cell(lon, lat):
 def lonlat(j, i):
     return [round(W + i / (gw - 1) * (E - W), 4), round(N - j / (gh - 1) * (N - S), 4)]
 
-def trace(start):
-    sj, si = cell(*start)
-    # snap the start to the lowest cell nearby (the valley floor)
-    win = H[sj - 6:sj + 7, si - 6:si + 7]
+def snap(lon, lat, r=4):
+    """lowest cell near a point: the valley floor"""
+    j, i = cell(lon, lat)
+    win = H[j - r:j + r + 1, i - r:i + r + 1]
     dj, di = np.unravel_index(np.argmin(win), win.shape)
-    sj, si = sj - 6 + dj, si - 6 + di
-    dist = {(sj, si): 0.0}; prev = {}; pq = [(0.0, sj, si)]
+    return j - r + dj, i - r + di
+
+def leg(src, goal=None):
+    """least-cost path from src to goal, or to the nearest sea cell if goal is None"""
+    dist = {src: 0.0}; prev = {}; pq = [(0.0, *src)]
     while pq:
         d, j, i = heapq.heappop(pq)
-        if H[j, i] < 0.5:  # reached the sea
+        if (goal is None and H[j, i] < 0.5) or (j, i) == goal:
             path = [(j, i)]
             while path[-1] in prev: path.append(prev[path[-1]])
-            return [lonlat(*p) for p in reversed(path)]
+            return path[::-1]
         if d > dist[(j, i)]: continue
         for dj in (-1, 0, 1):
             for di in (-1, 0, 1):
                 if not (dj or di): continue
                 y, x = j + dj, i + di
                 if not (0 <= y < gh and 0 <= x < gw): continue
-                step = (1.414 if dj and di else 1.0) * (max(H[y, x], 0) + 3.0) ** 1.5
-                nd = d + step
+                nd = d + (1.414 if dj and di else 1.0) * (max(H[y, x], 0) + 3.0) ** 1.5
                 if nd < dist.get((y, x), 1e30):
                     dist[(y, x)] = nd; prev[(y, x)] = (j, i); heapq.heappush(pq, (nd, y, x))
 
+def trace(points):
+    cells = [snap(*p) for p in points]
+    path = []
+    for a, b in zip(cells, cells[1:] + [None]):
+        path += leg(a, b)[(1 if path else 0):]
+    return [lonlat(*p) for p in path]
+
 RIVERS = {
-    "Calycadnus (Göksu)": (33.20, 36.62),   # upstream of Mut
-    "Cydnus (Berdan)": (34.85, 37.16),      # above Tarsus
-    "Lamos (Limonlu)": (34.10, 36.72),      # Lamos canyon
+    "Calycadnus (Göksu)": [(33.20, 36.62), (33.935, 36.372)],  # upstream of Mut, then Silifke bridge
+    "Cydnus (Berdan)": [(34.85, 37.16), (34.905, 36.917)],     # above Tarsus, then through Tarsus
+    "Lamos (Limonlu)": [(34.10, 36.72)],                       # Lamos canyon
 }
 out = {}
 for name, start in RIVERS.items():

@@ -7,6 +7,7 @@ export class Sound {
     this.enabled = false;
     this.ctx = null;
     this.buffers = {};
+    this.pending = {};
     this.loops = {};
     this.voice = null;
     this.onVoiceEnd = null;
@@ -15,7 +16,7 @@ export class Sound {
   async enable() {
     if (!this.ctx) {
       const AC = window.AudioContext || window.webkitAudioContext;
-      if (!AC) return;
+      if (!AC) return false;
       this.ctx = new AC();
       this.master = this.ctx.createGain();
       this.master.connect(this.ctx.destination);
@@ -27,6 +28,7 @@ export class Sound {
     await this.ctx.resume();
     this.enabled = true;
     this.fade(1, 0.8);
+    return true;
   }
 
   disable() {
@@ -40,8 +42,12 @@ export class Sound {
     g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(to, t + secs);
   }
 
-  async load(name) {
-    if (this.buffers[name]) return this.buffers[name];
+  load(name) {
+    // one fetch per clip, even when asked twice in quick succession
+    return (this.pending[name] ||= this.fetchClip(name));
+  }
+
+  async fetchClip(name) {
     try {
       const r = await fetch(BASE + name + '.mp3');
       if (!r.ok) throw new Error(r.status);

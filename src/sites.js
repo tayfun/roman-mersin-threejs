@@ -31,6 +31,7 @@ export const SOURCES = {
   tarsusKTB: { label: 'T.C. Ministry of Culture and Tourism — Tarsus: where to visit', url: 'https://ktb.gov.tr/EN-36260/where-to-visit.html' },
   donuktas: { label: 'Wikipedia — Donuktaş', url: 'https://en.wikipedia.org/wiki/Donukta%C5%9F' },
   tarsusWHE: { label: 'World History Encyclopedia — Tarsus', url: 'https://www.worldhistory.org/Tarsus' },
+  adamHDN: { label: 'Hürriyet Daily News — A hidden treasure in the Mediterranean: the Man Rocks', url: 'https://www.hurriyetdailynews.com/a-hidden-treasure-in-the-mediterranean-the-man-rocks-65128' },
   adamWiki: { label: 'Wikipedia — Adamkayalar', url: 'https://en.wikipedia.org/wiki/Adamkayalar' },
 };
 
@@ -87,14 +88,14 @@ export const SITES = [
     era: ['Hellenistic sanctuary', 'A city under Vespasian', 'Theatre AD 161–169'],
     body: [
       'This was the sanctuary of Zeus Olbios, ruled by the priest-kings of Olba. Under Vespasian (AD 69–79) it was separated from Olba as a city in its own right, and took the name Diocaesarea. The Roman town was then laid out around the old temple: colonnaded street, ceremonial gate, theatre, fountain house.',
-      'The Turkish name means "tall tower" after the five-storey Hellenistic tower that still stands over the village.',
+      'The Turkish name means "tall tower" after the tall Hellenistic tower that still stands over the village.',
     ],
     look: [
       'Temple of Zeus Olbios — Hellenistic, peripteral, some thirty columns still upright; later turned into a church',
       'Temple of Tyche (1st c. AD), a gift to the city from Oppius and Kyria, with its tall monolithic columns',
       'The theatre (reign of Marcus Aurelius and Lucius Verus, c. 2,500 seats) and the monumental gate',
     ],
-    evidence: 'Dating of the Zeus temple to the early Hellenistic period (sometimes attributed to Seleucus I) rests on architectural style; the theatre is dated by its inscription. The 2,500-seat figure is a guidebook estimate. The Ministry of Culture’s site page gives AD 72 for city status and the 5th century for the church conversion; other sources give no year.',
+    evidence: 'Dating of the Zeus temple to the early Hellenistic period (sometimes attributed to Seleucus I) rests on architectural style; the theatre is dated by its inscription. The 2,500-seat figure is a guidebook estimate. The sources cited here date city status only to Vespasian’s reign; the Ministry of Culture’s site page dates the church conversion to the 5th century.',
     fun: 'The paved road down to Seleucia still has Roman tomb-monuments standing beside it at Demircili (ancient Imbriogon).',
     sources: ['uzunWiki', 'uzunMuseum', 'uzunLivius'],
   },
@@ -128,17 +129,17 @@ export const SITES = [
     tagline: 'Roman-era ancestors carved into a canyon wall, watching the gorge for 1,800 years.',
     era: ['Probably 2nd c. AD'],
     body: [
-      'High on the cliff of the Şeytan Deresi ("Devil’s Creek") gorge, about 7 km inland from Kızkalesi, nine niches hold eighteen carved figures: eleven men, four women, two children and an ibex. Some recline at a funeral banquet, others stand armed; two Roman eagles sit on a pediment.',
-      'There is no inscription that says who they were. They are usually read as memorials to the leading families of the district, carved over several generations.',
+      'High on the cliff of the Şeytan Deresi ("Devil’s Creek") gorge, about 7 km inland from Kızkalesi, nine niches hold eighteen carved figures: eleven men, four women, two children and an ibex. Some recline as at a funeral banquet, others are shown as soldiers; two Roman eagles sit on a pediment.',
+      'There is no inscription that says who they were. They are usually read as funerary memorials to local notables.',
     ],
     look: [
       'The banquet scenes — the dead reclining on couches, family beside them',
-      'The soldier figures with spear and axe',
+      'The standing soldier figures',
       'The view down the canyon (the path is steep and exposed)',
     ],
     evidence: 'The 2nd-century date is a stylistic estimate. In 2019 treasure hunters badly damaged several figures, believing gold was hidden inside.',
     fun: 'Locals simply called them "the man rocks". The name stuck.',
-    sources: ['adamWiki'],
+    sources: ['adamWiki', 'adamHDN'],
   },
   {
     id: 'korykos',
@@ -149,7 +150,7 @@ export const SITES = [
     tagline: 'Rome’s anti-pirate naval base — later crowned by a castle floating on the sea.',
     era: ['Roman port & mint', 'Imperial fleet station', 'Castles 12th–13th c.'],
     body: [
-      'Corycus was the harbour town for this stretch of coast and the port of Seleucia. Under Rome it kept its own laws and struck its own coins, and the emperors stationed warships here to watch for pirates. The Corycian Cave, an hour’s walk west, took its name from the town.',
+      'Corycus was the harbour town for this stretch of coast. Under Rome it kept its own laws and struck its own coins, and the emperors stationed warships here to watch for pirates. The Corycian Cave, an hour’s walk west, took its name from the town.',
       'What you see first today is medieval: the land castle and the famous sea castle (Kızkalesi, "Maiden’s Castle"), re-fortified by the Byzantines in the early 12th century and then held by Armenian Cilicia. But the land castle is literally built out of the Roman city — column drums and inscribed blocks are everywhere in its walls.',
     ],
     look: [
@@ -191,8 +192,8 @@ export const SITES = [
     tagline: 'A town built around the lip of a sinkhole some 70 metres deep.',
     era: ['Olban tower, Hellenistic', 'Roman tombs', 'Rebuilt as Neapolis, 5th c. AD'],
     body: [
-      'Canytelis belonged to the priest-kingdom of Olba. Its oldest building, a tower on the south-west rim, carries the inscription "built by Teukros, son of Tarkyaris, priest of Olba, for Zeus". Under Rome the place grew into a small town; under Theodosius II it was rebuilt as a Christian centre called Neapolis.',
-      'Everything is arranged around the sinkhole — about 130 m on its long axis and 60–70 m deep (sources vary). Reliefs of local families are carved into its inner walls.',
+      'Canytelis belonged to the priest-kingdom of Olba. Its oldest building, a tower on the south-west rim, carries an inscription read as "Built by Teukros, the son of priest king Tarkyaris of Olba, for Zeus". Under Rome the place grew into a small town; under Theodosius II it was rebuilt as a Christian centre called Neapolis.',
+      'Everything is arranged around the sinkhole — about 130 m on its long axis by one account, 170 × 200 m by another, and 60–70 m deep. Reliefs of local families are carved into its inner walls.',
     ],
     look: [
       'The Olban tower and the roofless basilicas standing on the rim',

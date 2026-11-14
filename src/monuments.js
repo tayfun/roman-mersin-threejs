@@ -136,7 +136,7 @@ function sinkholePlinth(g, rx, rz, depth) {
   fl.rotation.x = -Math.PI / 2; fl.scale.set(rx, rz, 1);
 }
 
-function ruinTemple(g, nx, nz, sp, h, x0 = 0, z0 = 0, standing = () => true) {
+function ruinTemple(g, nx, nz, sp, h, x0 = 0, z0 = 0, standing = () => true, stumpEvery = 1) {
   const w = (nx - 1) * sp, d = (nz - 1) * sp;
   box(g, M.stone, w + 0.2, 0.06, d + 0.2, x0, 0, z0);
   box(g, M.marble, w + 0.13, 0.04, d + 0.13, x0, 0.06, z0);
@@ -144,6 +144,7 @@ function ruinTemple(g, nx, nz, sp, h, x0 = 0, z0 = 0, standing = () => true) {
   for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) {
     if (i > 0 && i < nx - 1 && j > 0 && j < nz - 1) continue;
     const up = standing(k++);
+    if (!up && (k - 1) % stumpEvery) continue; // most fallen columns leave nothing above the podium
     column(g, x0 - w / 2 + i * sp, z0 - d / 2 + j * sp, up ? h : h * 0.3, { broken: !up, y: 0.1 });
   }
   return { w, d };
@@ -305,7 +306,7 @@ const BUILD = {
     box(br, M.stone, 0.75, 0.02, 0.1, 0, 0.13, 0);
     // temple podium: one column standing, with its stork
     // 14 x 8 peripteros, of which one column stands
-    const { w, d } = ruinTemple(g, 14, 8, 0.075, 0.5, -0.05, -0.3, (k) => k === 7);
+    const { w, d } = ruinTemple(g, 14, 8, 0.075, 0.5, -0.05, -0.3, (k) => k === 7, 6);
     const cx = -0.05 - w / 2, cz = -0.3 + d / 2; // k = 7 is the front-left corner column
     add(g, new THREE.CylinderGeometry(0.055, 0.04, 0.03, 8), M.dark, cx, 0.69, cz); // nest
     add(g, new THREE.ConeGeometry(0.02, 0.09, 5), M.marble, cx, 0.75, cz).castShadow = false; // stork

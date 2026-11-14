@@ -106,6 +106,7 @@ async function init() {
   controls.target.set(8, 0, 22);
   $('#loading').textContent = '';
   for (const b of document.querySelectorAll('#intro button')) b.disabled = false;
+  $('#begin-sound').focus({ preventScroll: true });
   renderer.setAnimationLoop(frame);
   window.__ready = true;
   const fromHash = SITES.findIndex((s) => '#' + s.id === location.hash);
@@ -331,7 +332,7 @@ function flyTo(target, camPos, dur = 2.4, onDone) {
   flight = { t: 0, dur, fromT: controls.target.clone(), toT: target.clone(), fromP: camera.position.clone(), toP: camPos.clone(), onDone };
   controls.autoRotate = false;
 }
-const OVERVIEW = { target: new THREE.Vector3(8, 0, 22), pos: new THREE.Vector3(-18, 118, 196) };
+const OVERVIEW = { target: new THREE.Vector3(8, 0, 22), pos: new THREE.Vector3(-18, 130, 216) };
 function overviewPose() {
   // pull back further on narrow screens so the whole coast fits
   const k = Math.max(1, 1.76 / camera.aspect);
@@ -386,9 +387,9 @@ async function narrate(key, onEnd) {
   const mine = ++narrateToken;
   hideCaption();
   const dur = await sound.narrate(key, () => { hideCaption(); onEnd && onEnd(); });
-  if (mine !== narrateToken || (dur === false && sound.enabled)) return; // superseded by a newer narration
+  if (mine !== narrateToken) return; // superseded by a newer narration
   $('#caption').textContent = text; $('#caption').hidden = false;
-  // without sound the script is shown as a caption for a reading-time interval, and the tour still advances
+  // without sound (off, or the clip failed to load) the script is shown as a caption for a reading-time interval, and the tour still advances
   if (!dur) captionTimer = setTimeout(() => { hideCaption(); onEnd && onEnd(); }, 3500 + text.length * 45);
 }
 
@@ -438,7 +439,7 @@ function renderPanel(i) {
 }
 
 async function setSound(on) {
-  if (on) await sound.enable(); else sound.disable();
+  if (on) on = (await sound.enable().catch(() => false)) !== false && sound.enabled; else sound.disable();
   const b = $('#btn-sound');
   b.setAttribute('aria-pressed', String(on)); b.textContent = on ? '🔊 Sound' : '🔇 Sound';
   if (!on) { hideCaption(); if (state.tour) stopTour(); }
@@ -448,6 +449,7 @@ function begin(withSound, skipFlight = false) {
   if (state.started) return;
   state.started = true;
   $('#intro').classList.add('gone');
+  for (const el of document.querySelectorAll('[inert]')) el.inert = false;
   if (withSound) setSound(true).then(() => narrate('intro'));
   if (!skipFlight) { const p = overviewPose(); flyTo(p.target, p.pos, 4.2); }
 }
@@ -513,6 +515,7 @@ function buildUI() {
     if (i >= 0) select(i);
   });
   controls.addEventListener('start', () => { flight = null; controls.autoRotate = false; });
+  canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); $('#legend').textContent = 'The 3D view was interrupted — reload the page to continue.'; });
   addEventListener('resize', resize);
 }
 
