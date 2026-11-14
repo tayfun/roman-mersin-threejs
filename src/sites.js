@@ -31,7 +31,7 @@ export const SOURCES = {
   tarsusKTB: { label: 'T.C. Ministry of Culture and Tourism — Tarsus: where to visit', url: 'https://ktb.gov.tr/EN-36260/where-to-visit.html' },
   donuktas: { label: 'Wikipedia — Donuktaş', url: 'https://en.wikipedia.org/wiki/Donukta%C5%9F' },
   tarsusWHE: { label: 'World History Encyclopedia — Tarsus', url: 'https://www.worldhistory.org/Tarsus' },
-  adamHDN: { label: 'Hürriyet Daily News — A hidden treasure in the Mediterranean: the Man Rocks', url: 'https://www.hurriyetdailynews.com/a-hidden-treasure-in-the-mediterranean-the-man-rocks-65128' },
+  adamSabah: { label: 'Daily Sabah — Ancient site "Men of Rock" in Anatolia unveils unique reliefs', url: 'https://www.dailysabah.com/arts/ancient-site-men-of-rock-in-anatolia-unveils-unique-reliefs/news' },
   adamWiki: { label: 'Wikipedia — Adamkayalar', url: 'https://en.wikipedia.org/wiki/Adamkayalar' },
 };
 
@@ -66,7 +66,7 @@ export const SITES = [
     tagline: 'A lone Corinthian column, a stork’s nest, and a bridge signed by Vespasian’s governor.',
     era: ['Founded c. 296–280 BC', 'Roman bridge AD 77–78', 'Temple 2nd c. AD'],
     body: [
-      'Seleucus I Nicator founded the city on the Calycadnus (Göksu) river and moved in the people of the nearby port of Holmi. Under Rome it was the chief city of Rough Cilicia’s coast.',
+      'Seleucus I Nicator founded the city on the Calycadnus (Göksu) river and moved in the people of the nearby port of Holmi. Under Rome it remained one of the main cities of Rough Cilicia.',
       'Modern Silifke covers most of it, but the Roman city still pokes through: a 2nd-century temple usually called the Temple of Jupiter (originally 8 × 14 Corinthian columns, later a church), a rock-cut cistern (Tekir Ambarı), a rock-cut necropolis, and a river crossing first bridged in stone in AD 77–78 by the governor L. Octavius Memor.',
     ],
     look: [
@@ -84,7 +84,7 @@ export const SITES = [
     name: 'Diocaesarea',
     modern: 'Uzuncaburç',
     lat: 36.5808, lon: 33.9253,
-    tagline: 'A temple city at 1,200 m in the Taurus, with one of the oldest Corinthian temples in Anatolia.',
+    tagline: 'A temple city at 1,200 m in the Taurus, around a Hellenistic temple of Zeus.',
     era: ['Hellenistic sanctuary', 'A city under Vespasian', 'Theatre AD 161–169'],
     body: [
       'This was the sanctuary of Zeus Olbios, ruled by the priest-kings of Olba. Under Vespasian (AD 69–79) it was separated from Olba as a city in its own right, and took the name Diocaesarea. The Roman town was then laid out around the old temple: colonnaded street, ceremonial gate, theatre, fountain house.',
@@ -92,10 +92,10 @@ export const SITES = [
     ],
     look: [
       'Temple of Zeus Olbios — Hellenistic, peripteral, some thirty columns still upright; later turned into a church',
-      'Temple of Tyche (1st c. AD), a gift to the city from Oppius and Kyria, with its tall monolithic columns',
+      'Temple of Tyche (1st c. AD), a gift to the city from Oppius and Kyria, whose tall columns still carry part of the architrave',
       'The theatre (reign of Marcus Aurelius and Lucius Verus, c. 2,500 seats) and the monumental gate',
     ],
-    evidence: 'Dating of the Zeus temple to the early Hellenistic period (sometimes attributed to Seleucus I) rests on architectural style; the theatre is dated by its inscription. The 2,500-seat figure is a guidebook estimate. The sources cited here date city status only to Vespasian’s reign; the Ministry of Culture’s site page dates the church conversion to the 5th century.',
+    evidence: 'Dating of the Zeus temple to the early Hellenistic period (sometimes attributed to Seleucus I) rests on architectural style; the theatre is dated by its inscription. The 2,500-seat figure is a guidebook estimate. City status is dated to Vespasian’s reign (AD 69–79), with no exact year; the temple became a church in the 5th century.',
     fun: 'The paved road down to Seleucia still has Roman tomb-monuments standing beside it at Demircili (ancient Imbriogon).',
     sources: ['uzunWiki', 'uzunMuseum', 'uzunLivius'],
   },
@@ -108,7 +108,7 @@ export const SITES = [
     tagline: 'Two giant sinkholes where Zeus is said to have jailed the monster Typhon.',
     era: ['Sacred since Hellenistic times', 'Roman sanctuary', 'Chapel 5th c. AD'],
     body: [
-      'Cennet ("Heaven") is a collapsed cavern 250 × 110 m across and about 70 m deep; a few hundred metres away Cehennem ("Hell") is a sheer-sided shaft 70 × 50 m wide and 128 m deep that cannot be entered at all.',
+      'Cennet ("Heaven") is a collapsed cavern 250 × 110 m across and about 70 m deep; a short walk away Cehennem ("Hell") is a sheer-sided shaft 70 × 50 m wide and 128 m deep that cannot be entered at all.',
       'Ancient writers knew it as the Corycian Cave. Strabo says the best saffron in the world grew here; Pomponius Mela describes the descent in loving detail. Myth made Cehennem the temporary prison of Typhon before Zeus buried him under Etna.',
     ],
     look: [
@@ -139,7 +139,7 @@ export const SITES = [
     ],
     evidence: 'The 2nd-century date is a stylistic estimate. In 2019 treasure hunters badly damaged several figures, believing gold was hidden inside.',
     fun: 'Locals simply called them "the man rocks". The name stuck.',
-    sources: ['adamWiki', 'adamHDN'],
+    sources: ['adamWiki', 'adamSabah'],
   },
   {
     id: 'korykos',

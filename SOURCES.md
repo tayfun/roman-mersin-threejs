@@ -61,7 +61,7 @@ Alahan monastery (late antique), Mezgitkale and the Demircili/Imbriogon tombs, N
 
 ## 5. Adamkayalar
 - Wikipedia, "Adamkayalar" — https://en.wikipedia.org/wiki/Adamkayalar
-- Hürriyet Daily News, "A hidden treasure in the Mediterranean: the Man Rocks" — https://www.hurriyetdailynews.com/a-hidden-treasure-in-the-mediterranean-the-man-rocks-65128 — banquet scenes and soldier figures.
+- Daily Sabah, "Ancient site 'Men of Rock' in Anatolia unveils unique reliefs" — https://www.dailysabah.com/arts/ancient-site-men-of-rock-in-anatolia-unveils-unique-reliefs/news — feasts for the dead; two male figures shown as soldiers.
 - **Used:** 18 figures in nine niches (eleven men, four women, two children, one ibex), two eagles on a pediment; "probably 2nd century AD"; 7 km from Kızkalesi; damaged by treasure hunters in 2019.
 
 ## 6. Corycus (Kızkalesi)

@@ -268,7 +268,7 @@ function buildMapLabels() {
     ['Lamos fl.', 34.12, 36.66, 2.4, 0.9, 0x16384f, 0.75],
     ['Cydnus fl.', 34.94, 37.02, 2.6, -1.2, 0x16384f, 0.75],
     ['Pylae Ciliciae', 34.66, 37.3, 3.6, 0, 0x5a1a10, 0.75],
-    ['CYPRVS ↓', 33.35, 35.95, 5, 0, 0x16384f, 0.5],
+    ['AD CYPRVM', 33.35, 35.95, 4.5, 0, 0x16384f, 0.5],
   ];
   for (const [text, lon, lat, size, rot, color, op] of defs) {
     const c = document.createElement('canvas');
@@ -450,6 +450,7 @@ function begin(withSound, skipFlight = false) {
   state.started = true;
   $('#intro').classList.add('gone');
   for (const el of document.querySelectorAll('[inert]')) el.inert = false;
+  $('#intro').inert = true; document.activeElement && document.activeElement.blur();
   if (withSound) setSound(true).then(() => narrate('intro'));
   if (!skipFlight) { const p = overviewPose(); flyTo(p.target, p.pos, 4.2); }
 }
@@ -524,6 +525,7 @@ function resize() {
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
+  controls.maxDistance = Math.max(450, overviewPose().pos.distanceTo(OVERVIEW.target) * 1.15);
   for (const o of siteObjs) o.w = 0;
   for (const m of [...roadMats, riverMat]) m && m.resolution.set(w, h);
 }
