@@ -1,7 +1,8 @@
 # Sources
 
 Research notes behind the map. Every site panel in the app links back to the entries here.
-Where sources disagree the disagreement is recorded rather than resolved silently.
+Where sources disagree, or a claim rests on a single source, that is recorded here rather than resolved silently.
+The map was independently fact-checked once; corrections from that check are marked **Corrected**.
 
 Accessed November 2026.
 
@@ -29,29 +30,33 @@ Alahan monastery (late antique), Mezgitkale and the Demircili/Imbriogon tombs, N
 - Livius.org, "Anemurium (Anamur)" — https://livius.org/articles/place/anemurium-anamur
 - Hürriyet Daily News, "Mersin's Anemurium ancient city aims for UNESCO recognition" — https://hurriyetdailynews.com/mersins-anemurium-ancient-city-aims-for-unesco-recognition-194182
 - Underlying scholarship: Canadian excavations (E. Alföldi-Rosenbaum; J. Russell, Univ. of British Columbia), final publication vol. 1, 2021.
-- **Used:** large theatre + small odeon/bouleuterion (~900 seats); three large baths and one small; palaestra mosaic; necropolis of ~350 tombs, 1st–4th c. AD.
-- **Discrepancy:** end of the city — earthquake c. 580 vs. abandonment c. 650 after Arab raids. Both are given in the panel.
+- **Used:** large theatre + small odeon/bouleuterion; three large baths and one small; palaestra mosaic; necropolis of ~350 tombs, 1st–4th c. AD; abandonment around the 7th century.
+- **Not used:** a 900-seat figure for the odeon and an earthquake "c. 580" appear in secondary web sources only; they were dropped from the panel.
 
 ## 2. Seleucia ad Calycadnum (Silifke)
 - Wikipedia, "Silifke" — https://en.wikipedia.org/wiki/Silifke
 - Encyclopaedia Britannica, "Seleucia Tracheotis" — https://www.britannica.com/place/Seleucia-Tracheotis
 - Vici.org entries for the temple and bridge — https://vici.org/vici/30497/
 - **Used:** founded by Seleucus I Nicator (c. 296–280 BC) with settlers from Holmi; "renowned 2nd-century Temple of Jupiter"; stone bridge built AD 77 by governor L. Octavius Memor; rock-cut cistern Tekir Ambarı; rock-cut necropolis; Aya Thekla.
-- **Caveat:** the temple's dedication is traditional. The bridge has been heavily rebuilt.
+- Wikipedia, "Temple of Jupiter (Silifke)" — https://en.wikipedia.org/wiki/Temple_of_Jupiter_(Silifke) — peripteros of 8 × 14 Corinthian columns, c. 40 × 21 m; one column survives; later a church.
+- Turkey Photo Guide, "Silifke" — https://turkeyphotoguide.com/silifke — storks on the surviving column, "Temple of Storks".
+- **Caveat:** the temple's dedication is traditional. Turkish Archaeological News argues for a Seleucid-period origin rather than the 2nd c. AD. The bridge has been heavily rebuilt.
 
 ## 3. Diocaesarea (Uzuncaburç)
 - Wikipedia, "Uzuncaburç (Diokaisareia)" — https://en.wikipedia.org/wiki/Uzuncabur%C3%A7_(Diokaisareia)
 - Turkish Museums, "Mersin Uzuncaburç (Diokaisareia) Archaeological Site" — https://turkishmuseums.com/museum/detail/2167-mersin-uzuncaburc-diokaisareia-archaeological-site/2167/4
 - Livius.org, "Olba / Diocaesarea" — https://livius.org/articles/place/olba-diocaesarea
 - Lonely Planet, "Uzuncaburç Ruins" (theatre capacity) — https://www.lonelyplanet.com/turkey/uzuncaburc/attractions/uzuncaburc-ruins/a/poi-sig/1250521/1324932
-- **Used:** Hellenistic peripteral Temple of Zeus Olbios, converted to a church in the 5th c.; Temple of Tyche (1st c. AD, donors Oppius and Kyria); theatre under Marcus Aurelius and Lucius Verus (161–169); city status from Vespasian, AD 72; monumental gate; tall Hellenistic tower.
-- **Discrepancy:** standing columns of the Zeus temple are given as "36" in one source although a 6 × 12 peripteros has 32 — the panel says "some thirty". Tyche temple date: "1st century AD" vs. "reign of Vespasian or Domitian" (compatible). The 2,500-seat figure is from a guidebook only.
+- **Used:** Hellenistic peripteral Temple of Zeus Olbios, converted to a church in the 5th c.; Temple of Tyche (1st c. AD, donors Oppius and Kyria); theatre under Marcus Aurelius and Lucius Verus (161–169); city status under Vespasian; monumental gate; tall Hellenistic tower.
+- **Discrepancy:** standing columns of the Zeus temple are given as "36" in one source although a 6 × 12 peripteros has 32 — the panel says "some thirty". Tyche temple date: "1st century AD" vs. "reign of Vespasian or Domitian" (compatible). The 2,500-seat figure is from a guidebook only. The year AD 72 for city status and "5th century" for the church conversion come from the Ministry (Turkish Museums) page alone; Wikipedia and Livius say only "under Vespasian" — the panel now says the same (**Corrected**).
 
 ## 4. Corycian Cave (Cennet & Cehennem)
 - Wikipedia, "Cennet and Cehennem" — https://en.wikipedia.org/wiki/Cennet_and_Cehennem
 - Wikipedia, "Corycus" (ancient authors on the cave) — https://en.wikipedia.org/wiki/Corycus
 - Strabo, *Geography* 14.5.5 — http://www.perseus.tufts.edu/hopper/text?doc=Perseus:text:1999.01.0198:book=14:chapter=5:section=5
 - Pomponius Mela, *De chorographia* 1.13; Pindar, *Pythian* 1; Aeschylus, *Prometheus Bound* 350ff.
+- Showcaves.com, "Cennet ve Cehennem Çökükleri" — https://showcaves.com/english/tr/showcaves/CennetCehennem.html — temple-church 10–15 m from the southern rim.
+- Hürriyet Daily News, "Cennet and Cehennem caves" — https://www.hurriyetdailynews.com/cennet-and-cehennem-caves-49099 — late Hellenistic temple of Corycian Zeus turned into a church in the 5th century.
 - **Used:** Cennet 250 × 110 m, c. 70 m deep, ~300 steps; Cehennem 70 × 50 m, 128 m deep; Typhon myth; saffron (Strabo); 5th-c. chapel of the Virgin built by one Paulus; temple of Zeus on the rim later turned into a church.
 
 ## 5. Adamkayalar
@@ -60,7 +65,8 @@ Alahan monastery (late antique), Mezgitkale and the Demircili/Imbriogon tombs, N
 
 ## 6. Corycus (Kızkalesi)
 - Wikipedia, "Corycus" — https://en.wikipedia.org/wiki/Corycus (drawing on R. W. Edwards' survey of the castles, 1982/1987)
-- **Used:** Battle of Corycus, 191 BC; Roman fleet station and mint; arch, necropolis, sarcophagi, churches; island castle re-fortified in the early 12th c. under Alexios I Komnenos; Armenian inscriptions of Levon I and Hetum I; land castle built of spolia from the Roman city.
+- **Corrected:** an earlier draft placed the naval Battle of Corycus (191 BC) here, following the Wikipedia "Corycus" article. That battle was fought off Corycus in Ionia — https://en.wikipedia.org/wiki/Battle_of_Corycus — and has been removed.
+- **Used:** port of Seleucia; Roman fleet station and mint; arch, necropolis, sarcophagi, churches; island castle re-fortified in the early 12th c. under Alexios I Komnenos; Armenian inscriptions of Levon I and Hetum I; land castle built of spolia from the Roman city.
 - **Caveat:** the castles are medieval. They are modelled because they are the landmark, and labelled as medieval in the panel.
 
 ## 7. Elaiussa Sebaste (Ayaş)
@@ -75,7 +81,7 @@ Alahan monastery (late antique), Mezgitkale and the Demircili/Imbriogon tombs, N
 - Turkish Museums, "Mersin Kanlı Divane (Kanytelleis) Archaeological Site" — https://turkishmuseums.com/museum/detail/2163-mersin-kanli-divane-kanytelleis-archaeological-site/2163/4
 - Showcaves.com, "Kanlıdivane" — https://showcaves.com/english/tr/karst/Kanlidivane.html
 - **Used:** sinkhole c. 130 m on the long axis; tower inscription "built by Teukros, son of Tarkyaris, priest of Olba, for Zeus"; mausoleum built by Aba for her husband and sons; basilicas; renamed Neapolis under Theodosius II.
-- **Discrepancy:** depth given as 60 m and as 70 m.
+- **Discrepancy:** depth given as 60 m (Ministry page) and as about 70 m (Wikipedia). The panel and narration say "some 70 metres" and note the range. The source says Aba built the tomb for her husband and "sons" (no number).
 
 ## 9. Soli-Pompeiopolis
 - Wikipedia, "Soli, Cilicia" — https://en.wikipedia.org/wiki/Soli,_Cilicia
@@ -100,8 +106,9 @@ Alahan monastery (late antique), Mezgitkale and the Demircili/Imbriogon tombs, N
 ## Map data
 - **Elevation:** Mapzen Terrarium tiles (zoom 9) from the AWS Open Data "Terrain Tiles" set — https://registry.opendata.aws/terrain-tiles/ — which here derive from SRTM (NASA/USGS, public domain). Resampled to an 800 × 574 grid by `tools/build_heightmap.py`. Vertical exaggeration ×2.6.
 - **Sea colour** is driven by distance from the coast, not by real bathymetry.
+- **Rivers** (Calycadnus/Göksu, Cydnus/Berdan, Lamos/Limonlu) are traced by `tools/trace_rivers.py` as least-elevation paths down the DEM's valley floors from a point on each river to the sea. They follow the real valleys at ~330 m resolution but are not surveyed centrelines, and the lower Göksu ends at the delta lagoon.
 - **Roman roads** are schematic: splines through attested stations (Anemurium – Kelenderis – Seleucia – Corycus – Elaiussa – Soli – Tarsus; Seleucia – Diocaesarea; Tarsus – Sağlıklı – Cilician Gates). They show connections, not surveyed alignments.
 - **Monument models** are procedural miniatures composed from the standing remains listed above; not to scale.
 
 ## Sound
-- Narration, ambience, effects and music were generated with the ElevenLabs API (`tools/generate_audio.py`): text-to-speech model `eleven_v4`, voice "George"; sound effects and music via the sound-generation and music endpoints. Narration scripts are in `src/narration.json` and use only facts listed above.
+- Narration, ambience, effects and music were generated with the ElevenLabs API (`tools/generate_audio.py`): text-to-speech model `eleven_v4`, voice "George"; sound effects and music via the sound-generation and music endpoints; levels and the music loop point were then adjusted with ffmpeg (`tools/postprocess_audio.sh`). Narration scripts are in `src/narration.json` and use only facts listed above.

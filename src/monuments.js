@@ -94,6 +94,18 @@ function seaSegment(g, zCut) {
   return m;
 }
 
+function waterBand(g, c0, c1, alongX = true) {
+  // a river crossing the plinth: the strip c0 < z < c1 (or x, if !alongX) clipped to the disc
+  const r = 0.985, pts = [];
+  const a0 = Math.asin(c0 / r), a1 = Math.asin(c1 / r);
+  for (let k = 0; k <= 8; k++) { const a = a0 + (a1 - a0) * (k / 8); pts.push([Math.cos(a) * r, Math.sin(a) * r]); }
+  for (let k = 0; k <= 8; k++) { const a = Math.PI - a1 + (a1 - a0) * (k / 8); pts.push([Math.cos(a) * r, Math.sin(a) * r]); }
+  const sh = new THREE.Shape(pts.map(([u, v]) => (alongX ? new THREE.Vector2(u, -v) : new THREE.Vector2(v, -u))));
+  const m = add(g, new THREE.ShapeGeometry(sh), M.sea, 0, 0.012, 0);
+  m.rotation.x = -Math.PI / 2; m.castShadow = false;
+  return m;
+}
+
 function plinth(g, top = M.earth, h = 0.1) {
   add(g, new THREE.CylinderGeometry(1.0, 1.06, h, 48), top, 0, -h / 2, 0).castShadow = false;
   add(g, new THREE.TorusGeometry(1.03, 0.035, 8, 64), M.bronze, 0, -0.01, 0).rotation.x = Math.PI / 2;
@@ -186,7 +198,7 @@ const BUILD = {
     box(g, M.stone, 0.16, 0.5, 0.16, -0.55, 0, 0.5);
     box(g, M.dark, 0.04, 0.08, 0.02, -0.55, 0.3, 0.585);
     // basilicas on the rim (roofless naves with apses)
-    for (const [x, z, ry] of [[0.68, 0.1, 0.2], [0.1, -0.68, 1.6], [-0.66, -0.2, -0.3]]) {
+    for (const [x, z, ry] of [[0.68, 0.1, 0.2], [0.1, -0.68, 1.6], [-0.66, -0.2, -0.3], [0.0, 0.68, 1.5]]) {
       const b = new THREE.Group(); b.position.set(x, 0, z); b.rotation.y = ry; g.add(b);
       box(b, M.stone, 0.03, 0.26, 0.4, -0.11, 0, 0); box(b, M.stone, 0.03, 0.2, 0.4, 0.11, 0, 0);
       add(b, archGeo(0.25, 0.3, 0.03, 0.1, 0.17), M.stone, 0, 0, 0.2);
@@ -287,15 +299,16 @@ const BUILD = {
   seleucia(g) {
     plinth(g);
     // river Calycadnus and the bridge
-    const river = box(g, M.sea, 2.0, 0.012, 0.3, 0, 0, 0.45, 0.12); river.castShadow = false;
-    const br = new THREE.Group(); br.position.set(0.1, 0, 0.45); br.rotation.y = Math.PI / 2 + 0.12; g.add(br);
+    waterBand(g, 0.3, 0.6);
+    const br = new THREE.Group(); br.position.set(0.1, 0, 0.45); br.rotation.y = Math.PI / 2; br.scale.set(1.25, 1.5, 1.25); g.add(br);
     for (let i = 0; i < 5; i++) add(br, archGeo(0.13, 0.13, 0.08, 0.09, 0.1), M.stone, -0.26 + i * 0.13, 0, 0);
     box(br, M.stone, 0.75, 0.02, 0.1, 0, 0.13, 0);
     // temple podium: one column standing, with its stork
-    ruinTemple(g, 8, 4, 0.11, 0.5, -0.1, -0.3, (k) => k === 3);
-    add(g, new THREE.CylinderGeometry(0.055, 0.04, 0.03, 8), M.dark, -0.1 - 0.385 + 0.11, 0.69, -0.3 + 0.165); // nest
-    const stork = add(g, new THREE.ConeGeometry(0.02, 0.09, 5), M.marble, -0.375, 0.75, -0.135);
-    stork.castShadow = false;
+    // 14 x 8 peripteros, of which one column stands
+    const { w, d } = ruinTemple(g, 14, 8, 0.075, 0.5, -0.05, -0.3, (k) => k === 7);
+    const cx = -0.05 - w / 2, cz = -0.3 + d / 2; // k = 7 is the front-left corner column
+    add(g, new THREE.CylinderGeometry(0.055, 0.04, 0.03, 8), M.dark, cx, 0.69, cz); // nest
+    add(g, new THREE.ConeGeometry(0.02, 0.09, 5), M.marble, cx, 0.75, cz).castShadow = false; // stork
     // castle hill behind
     add(g, new THREE.SphereGeometry(0.3, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), M.grass, -0.62, 0, -0.55).scale.y = 0.7;
     add(g, new THREE.CylinderGeometry(0.14, 0.15, 0.07, 10), M.stone, -0.62, 0.22, -0.55);
@@ -365,8 +378,8 @@ const BUILD = {
     box(g, M.dark, 0.5, 0.2, 0.85, 0.62, 0, -0.1);
     box(g, M.dark, 0.38, 0.1, 0.6, 0.62, 0.2, -0.1);
     // river Cydnus and Cleopatra's barge with its purple sail
-    const river = box(g, M.sea, 0.3, 0.014, 1.8, -0.62, 0, 0, 0.1); river.castShadow = false;
-    const barge = galley(0x7a2c8f, 0xd9b24a); barge.scale.setScalar(0.4); barge.position.set(-0.62, 0.03, 0.15); barge.rotation.y = Math.PI / 2 + 0.1; g.add(barge);
+    waterBand(g, -0.78, -0.48, false);
+    const barge = galley(0x7a2c8f, 0xd9b24a); barge.scale.setScalar(0.4); barge.position.set(-0.62, 0.03, 0.15); barge.rotation.y = Math.PI / 2; g.add(barge);
     cypress(g, -0.3, -0.6); cypress(g, -0.32, 0.35); tree(g, 0.35, 0.55);
   },
 };

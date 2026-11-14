@@ -1,5 +1,5 @@
-// The ten sites. Every factual claim here is traceable to SOURCES.md (keys in `sources`).
-// Where sources disagree, the text says so rather than picking a number silently.
+// The ten sites. Claims follow the sources listed per site (see SOURCES.md, which also records
+// what each source was used for and where sources disagree or a claim rests on a single source).
 
 export const SOURCES = {
   soliWiki: { label: 'Wikipedia — Soli, Cilicia', url: 'https://en.wikipedia.org/wiki/Soli,_Cilicia' },
@@ -14,6 +14,11 @@ export const SOURCES = {
   corycusWiki: { label: 'Wikipedia — Corycus', url: 'https://en.wikipedia.org/wiki/Corycus' },
   cennetWiki: { label: 'Wikipedia — Cennet and Cehennem', url: 'https://en.wikipedia.org/wiki/Cennet_and_Cehennem' },
   strabo: { label: 'Strabo, Geography 14.5.5 (Perseus)', url: 'http://www.perseus.tufts.edu/hopper/text?doc=Perseus:text:1999.01.0198:book=14:chapter=5:section=5' },
+  jupiterWiki: { label: 'Wikipedia — Temple of Jupiter (Silifke)', url: 'https://en.wikipedia.org/wiki/Temple_of_Jupiter_(Silifke)' },
+  silifkeTPG: { label: 'Turkey Photo Guide — Silifke (the "Temple of Storks")', url: 'https://turkeyphotoguide.com/silifke' },
+  cennetShow: { label: 'Showcaves.com — Cennet ve Cehennem Çökükleri', url: 'https://showcaves.com/english/tr/showcaves/CennetCehennem.html' },
+  cennetHDN: { label: 'Hürriyet Daily News — Cennet and Cehennem caves', url: 'https://www.hurriyetdailynews.com/cennet-and-cehennem-caves-49099' },
+  corycusBattle: { label: 'Wikipedia — Battle of Corycus (fought off Ionia, not here)', url: 'https://en.wikipedia.org/wiki/Battle_of_Corycus' },
   silifkeWiki: { label: 'Wikipedia — Silifke', url: 'https://en.wikipedia.org/wiki/Silifke' },
   seleuciaBrit: { label: 'Britannica — Seleucia Tracheotis', url: 'https://www.britannica.com/place/Seleucia-Tracheotis' },
   uzunWiki: { label: 'Wikipedia — Uzuncaburç (Diokaisareia)', url: 'https://en.wikipedia.org/wiki/Uzuncabur%C3%A7_(Diokaisareia)' },
@@ -40,10 +45,10 @@ export const SITES = [
     era: ['Roman Imperial', '1st–4th c. AD', 'abandoned c. 7th c.'],
     body: [
       'Anemurium sits on Cape Anamur, the southernmost point of Asia Minor, looking straight across to Cyprus. Because nobody ever built a modern town on top of it, the city survives as streets of roofless but still-vaulted buildings climbing from the beach to the slope behind.',
-      'Its heyday was the 2nd–3rd centuries AD. Sources differ on the end: one account blames an earthquake around 580, another the Arab raids of the mid-7th century.',
+      'Its heyday was the 2nd–3rd centuries AD. It faded in late antiquity and was abandoned around the 7th century, the time of the Arab raids on this coast.',
     ],
     look: [
-      'A large theatre and, facing it, a small roofed odeon/bouleuterion (about 900 seats)',
+      'A large theatre and, facing it, a small roofed odeon that doubled as the council chamber',
       'Three large public baths and one small one; the best-preserved has a mosaic-floored palaestra',
       'A necropolis of roughly 350 house-like barrel-vaulted tombs, 1st–4th c. AD, some still painted inside',
     ],
@@ -61,16 +66,16 @@ export const SITES = [
     era: ['Founded c. 296–280 BC', 'Roman bridge AD 77–78', 'Temple 2nd c. AD'],
     body: [
       'Seleucus I Nicator founded the city on the Calycadnus (Göksu) river and moved in the people of the nearby port of Holmi. Under Rome it was the chief city of Rough Cilicia’s coast.',
-      'Modern Silifke covers most of it, but the Roman city still pokes through: a 2nd-century temple usually called the Temple of Jupiter, a rock-cut cistern (Tekir Ambarı), a rock-cut necropolis, and a river crossing first bridged in stone in AD 77–78 by the governor L. Octavius Memor.',
+      'Modern Silifke covers most of it, but the Roman city still pokes through: a 2nd-century temple usually called the Temple of Jupiter (originally 8 × 14 Corinthian columns, later a church), a rock-cut cistern (Tekir Ambarı), a rock-cut necropolis, and a river crossing first bridged in stone in AD 77–78 by the governor L. Octavius Memor.',
     ],
     look: [
-      'The Temple of Jupiter: its podium and one re-erected Corinthian column in the middle of town',
+      'The Temple of Jupiter: its podium and the single column that survives, in the middle of town',
       'The stone bridge over the Göksu — heavily rebuilt, but on Roman foundations',
       'Aya Thekla, the cave church of St Thecla, just south of town',
     ],
-    evidence: 'The bridge’s date and builder come from its dedicatory inscription. The temple’s dedication to Jupiter/Zeus is traditional rather than proven by an inscription.',
-    fun: 'Storks nest on top of the temple’s surviving column most summers — the best-housed birds in Cilicia.',
-    sources: ['silifkeWiki', 'seleuciaBrit'],
+    evidence: 'The bridge’s date and builder come from its dedicatory inscription. The temple’s dedication to Jupiter/Zeus is traditional rather than proven by an inscription, and one source argues for an earlier, Seleucid origin.',
+    fun: 'Storks nest on the surviving column, so locals also call it the Temple of Storks.',
+    sources: ['silifkeWiki', 'jupiterWiki', 'silifkeTPG', 'seleuciaBrit'],
   },
   {
     id: 'diocaesarea',
@@ -79,17 +84,17 @@ export const SITES = [
     modern: 'Uzuncaburç',
     lat: 36.5808, lon: 33.9253,
     tagline: 'A temple city at 1,200 m in the Taurus, with one of the oldest Corinthian temples in Anatolia.',
-    era: ['Hellenistic sanctuary', 'City status AD 72', 'Theatre AD 161–169'],
+    era: ['Hellenistic sanctuary', 'A city under Vespasian', 'Theatre AD 161–169'],
     body: [
-      'This was the sanctuary of Zeus Olbios, ruled by the priest-kings of Olba. Vespasian made it a city in its own right in AD 72 and it took the name Diocaesarea. The Roman town was then laid out around the old temple: colonnaded street, ceremonial gate, theatre, fountain house.',
+      'This was the sanctuary of Zeus Olbios, ruled by the priest-kings of Olba. Under Vespasian (AD 69–79) it was separated from Olba as a city in its own right, and took the name Diocaesarea. The Roman town was then laid out around the old temple: colonnaded street, ceremonial gate, theatre, fountain house.',
       'The Turkish name means "tall tower" after the five-storey Hellenistic tower that still stands over the village.',
     ],
     look: [
-      'Temple of Zeus Olbios — Hellenistic, peripteral, some thirty columns still upright; turned into a church in the 5th century',
+      'Temple of Zeus Olbios — Hellenistic, peripteral, some thirty columns still upright; later turned into a church',
       'Temple of Tyche (1st c. AD), a gift to the city from Oppius and Kyria, with its tall monolithic columns',
       'The theatre (reign of Marcus Aurelius and Lucius Verus, c. 2,500 seats) and the monumental gate',
     ],
-    evidence: 'Dating of the Zeus temple to the early Hellenistic period (sometimes attributed to Seleucus I) rests on architectural style; the theatre is dated by its inscription. The 2,500-seat figure is a guidebook estimate.',
+    evidence: 'Dating of the Zeus temple to the early Hellenistic period (sometimes attributed to Seleucus I) rests on architectural style; the theatre is dated by its inscription. The 2,500-seat figure is a guidebook estimate. The Ministry of Culture’s site page gives AD 72 for city status and the 5th century for the church conversion; other sources give no year.',
     fun: 'The paved road down to Seleucia still has Roman tomb-monuments standing beside it at Demircili (ancient Imbriogon).',
     sources: ['uzunWiki', 'uzunMuseum', 'uzunLivius'],
   },
@@ -106,13 +111,13 @@ export const SITES = [
       'Ancient writers knew it as the Corycian Cave. Strabo says the best saffron in the world grew here; Pomponius Mela describes the descent in loving detail. Myth made Cehennem the temporary prison of Typhon before Zeus buried him under Etna.',
     ],
     look: [
-      'The remains of a temple of Zeus on the rim, later rebuilt as a church',
+      'The "temple-church" a few metres from the southern rim: a temple of Zeus turned into a church in the 5th century',
       'About 300 steps down into Cennet to the 5th-century chapel of the Virgin Mary at the cave mouth',
       'The roar of an underground river inside the cave',
     ],
     evidence: 'Sinkhole dimensions are modern survey figures. The identification with the Corycian Cave of Strabo (14.5.5) and Mela is generally accepted.',
     fun: 'Pindar and Aeschylus both mention "the Cilician cave" as Typhon’s lair — this is a 2,500-year-old tourist attraction.',
-    sources: ['cennetWiki', 'corycusWiki', 'strabo'],
+    sources: ['cennetWiki', 'cennetShow', 'cennetHDN', 'corycusWiki', 'strabo'],
   },
   {
     id: 'adamkayalar',
@@ -142,9 +147,9 @@ export const SITES = [
     modern: 'Kızkalesi',
     lat: 36.4653, lon: 34.1542,
     tagline: 'Rome’s anti-pirate naval base — later crowned by a castle floating on the sea.',
-    era: ['Battle of Corycus 191 BC', 'Roman port & mint', 'Castles 12th–13th c.'],
+    era: ['Roman port & mint', 'Imperial fleet station', 'Castles 12th–13th c.'],
     body: [
-      'Corycus was the harbour town for this stretch of coast. A Roman fleet beat Antiochus the Great’s navy off it in 191 BC, and later emperors kept warships here to watch for pirates. The town struck its own coins and kept its own laws.',
+      'Corycus was the harbour town for this stretch of coast and the port of Seleucia. Under Rome it kept its own laws and struck its own coins, and the emperors stationed warships here to watch for pirates. The Corycian Cave, an hour’s walk west, took its name from the town.',
       'What you see first today is medieval: the land castle and the famous sea castle (Kızkalesi, "Maiden’s Castle"), re-fortified by the Byzantines in the early 12th century and then held by Armenian Cilicia. But the land castle is literally built out of the Roman city — column drums and inscribed blocks are everywhere in its walls.',
     ],
     look: [
@@ -152,9 +157,9 @@ export const SITES = [
       'The huge rock-cut and sarcophagus necropolis running inland',
       'Early Christian basilicas north-east of the castle',
     ],
-    evidence: 'The castles are medieval, not Roman — shown on the model because they are the landmark, and labelled as such. Roman-period remains listed here follow published site descriptions.',
+    evidence: 'The castles are medieval, not Roman — shown on the model because they are the landmark, and labelled as such. Roman-period remains listed here follow published site descriptions. (The naval Battle of Corycus of 191 BC, sometimes placed here, was fought off the other Corycus, in Ionia.)',
     fun: 'The legend: a king, told his daughter would die of a snakebite, built her a castle in the sea. The snake arrived in a basket of grapes.',
-    sources: ['corycusWiki'],
+    sources: ['corycusWiki', 'corycusBattle'],
   },
   {
     id: 'elaiussa',
@@ -183,15 +188,15 @@ export const SITES = [
     name: 'Canytelis',
     modern: 'Kanlıdivane',
     lat: 36.5256, lon: 34.1792,
-    tagline: 'A town built around the lip of a 60-metre-deep sinkhole.',
+    tagline: 'A town built around the lip of a sinkhole some 70 metres deep.',
     era: ['Olban tower, Hellenistic', 'Roman tombs', 'Rebuilt as Neapolis, 5th c. AD'],
     body: [
       'Canytelis belonged to the priest-kingdom of Olba. Its oldest building, a tower on the south-west rim, carries the inscription "built by Teukros, son of Tarkyaris, priest of Olba, for Zeus". Under Rome the place grew into a small town; under Theodosius II it was rebuilt as a Christian centre called Neapolis.',
       'Everything is arranged around the sinkhole — about 130 m on its long axis and 60–70 m deep (sources vary). Reliefs of local families are carved into its inner walls.',
     ],
     look: [
-      'The Olban tower and four basilicas standing on the rim',
-      'The temple-tomb that a woman named Aba built for her husband and two sons',
+      'The Olban tower and the roofless basilicas standing on the rim',
+      'The temple-tomb that a woman named Aba built for her husband and sons',
       'Rock reliefs inside the sinkhole, and a necropolis of sarcophagi to the north',
     ],
     evidence: 'Dimensions follow published descriptions (depth is given as 60 m or 70 m). The tower dedication and the Aba tomb are known from their inscriptions.',

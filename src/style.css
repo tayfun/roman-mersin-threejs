@@ -61,6 +61,7 @@ button { font: inherit; cursor: pointer; }
 #toolbar { position: fixed; left: 50%; bottom: 34px; transform: translateX(-50%); display: flex; gap: 6px; padding: 6px; background: rgba(20,28,36,.6); border-radius: 8px; backdrop-filter: blur(8px); border: 1px solid rgba(241,211,138,.25); }
 #toolbar button { background: transparent; color: #f6ead0; border: 1px solid transparent; border-radius: 5px; padding: 6px 12px; font: 500 12px var(--caps); letter-spacing: .06em; white-space: nowrap; }
 #toolbar button:hover { border-color: rgba(241,211,138,.6); }
+#toolbar .narrow { display: none; }
 #toolbar button[aria-pressed="true"], #toolbar button.on { background: var(--parch); color: var(--ink); }
 
 #compass { position: fixed; left: 22px; bottom: 44px; width: 54px; height: 54px; border-radius: 50%; border: 2px solid rgba(241,211,138,.8); background: rgba(20,28,36,.5); backdrop-filter: blur(4px); }
@@ -72,6 +73,7 @@ button { font: inherit; cursor: pointer; }
 #caption { position: fixed; left: 50%; bottom: 92px; transform: translateX(-50%); max-width: min(680px, 86vw); text-align: center; color: #fff7e2; font-size: 19px; font-style: italic; line-height: 1.35;
   background: rgba(14,20,28,.72); padding: 10px 18px; border-radius: 6px; backdrop-filter: blur(6px); }
 #caption[hidden] { display: none; }
+@media (min-width: 761px) { body.panel-open #caption { left: calc((100vw - 426px) / 2); max-width: min(560px, calc(100vw - 480px)); } }
 
 #legend { position: fixed; left: 0; right: 0; bottom: 0; padding: 5px 12px; font-size: 12.5px; color: rgba(246,234,208,.82); background: rgba(14,20,28,.55); text-align: center; }
 #legend a { color: #f1d38a; margin-left: 6px; }
@@ -96,10 +98,12 @@ button { font: inherit; cursor: pointer; }
   #sitelist button .t { display: none; } #sitelist button { padding: 4px; }
   #panel { left: 0; right: 0; top: auto; bottom: 0; width: 100%; height: 52vh; border-radius: 14px 14px 0 0; animation-name: rise; z-index: 5; }
   @keyframes rise { from { transform: translateY(60px); opacity: 0; } }
-  #toolbar { bottom: 30px; max-width: 96vw; overflow-x: auto; } #toolbar button { padding: 6px 8px; font-size: 11px; }
+  #toolbar { left: 8px; right: 8px; bottom: 26px; transform: none; justify-content: space-between; gap: 2px; padding: 4px; } #toolbar button { padding: 6px 5px; font-size: 10px; letter-spacing: 0; flex: 1; }
+  #toolbar .wide, #legend .wide { display: none; } #toolbar .narrow { display: inline; }
+  body.panel-open #title { display: none; }
   body.panel-open #toolbar, body.panel-open #legend, body.panel-open #compass, body.panel-open #caption { display: none; }
   #compass { bottom: 84px; left: 10px; width: 42px; height: 42px; } #needle::before { border-bottom-width: 12px; } #needle::after { border-top-width: 12px; }
-  #legend { font-size: 10.5px; }
+  #legend { font-size: 10.5px; padding: 3px 8px; white-space: nowrap; }
   .label .txt small { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { #panel { animation: none; } }

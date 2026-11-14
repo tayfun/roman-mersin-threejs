@@ -8,6 +8,7 @@ import { loadHeights, makeSampler, coastDistance, buildTerrain, buildSea } from 
 import { buildMonument, galley } from './monuments.js';
 import { SITES, ROADS, SOURCES } from './sites.js';
 import NARRATION from './narration.json';
+import RIVERS from './rivers.json';
 import { Sound } from './audio.js';
 
 const $ = (s) => document.querySelector(s);
@@ -16,7 +17,13 @@ const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // ---------- renderer / scene ----------
 const LOW = new URLSearchParams(location.search).get('q') === 'low';
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: !LOW, powerPreference: 'high-performance' });
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: !LOW, powerPreference: 'high-performance' });
+} catch (e) {
+  $('#loading').textContent = 'This map needs WebGL, which this browser or device could not start.';
+  throw e;
+}
 renderer.setPixelRatio(LOW ? 1 : Math.min(devicePixelRatio, 2));
 renderer.shadowMap.enabled = !LOW;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -27,7 +34,7 @@ const scene = new THREE.Scene();
 scene.fog = new THREE.FogExp2(0xbfd6e6, 0.0016);
 scene.background = new THREE.Color(0xbfd6e6);
 
-const camera = new THREE.PerspectiveCamera(42, 1, 0.5, 2500);
+const camera = new THREE.PerspectiveCamera(42, 1, 0.5, 4000);
 camera.position.set(-40, 420, 380);
 
 const controls = new OrbitControls(camera, canvas);
@@ -35,7 +42,7 @@ controls.enableDamping = true;
 controls.dampingFactor = 0.08;
 controls.maxPolarAngle = THREE.MathUtils.degToRad(80);
 controls.minDistance = 2.5;
-controls.maxDistance = 330;
+controls.maxDistance = 950;
 controls.zoomSpeed = 0.9;
 controls.screenSpacePanning = false;
 controls.autoRotateSpeed = 0.5;
@@ -57,7 +64,7 @@ const sky = new THREE.Mesh(
     vertexShader: 'varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
     fragmentShader: `uniform vec3 uTop,uHorizon,uSunDir,uSunCol; varying vec3 vDir;
       void main(){ float h = clamp(vDir.y,0.0,1.0); vec3 c = mix(uHorizon,uTop,pow(h,0.45));
-        c = mix(c, uTop*0.22, smoothstep(0.0,-0.75,vDir.y)); // the map floats over deep blue
+        c = mix(c, uTop*0.22, smoothstep(0.02,-0.4,vDir.y)); // the map floats over deep blue
         float s = max(dot(normalize(vDir),uSunDir),0.0); c += uSunCol*(pow(s,600.0)*1.5 + pow(s,12.0)*0.35);
         gl_FragColor = vec4(c,1.0); }`,
   }),
@@ -65,16 +72,21 @@ const sky = new THREE.Mesh(
 scene.add(sky);
 
 // ---------- state ----------
-const state = { selected: -1, hovered: -1, tour: false, dusk: 0, duskTarget: 0, roads: true, started: false, userMoved: false };
+const state = { selected: -1, hovered: -1, tour: false, dusk: 0, duskTarget: 0, roads: true, started: false };
 const sound = new Sound();
 const siteObjs = [];
 let sampleH = () => 0;
-let sea, roadGroup, roadMats = [], trees, ships = [], clouds = [], mapLabels = [];
+let sea, roadGroup, roadMats = [], riverMat, trees, ships = [], clouds = [], mapLabels = [];
 const groundY = (x, z) => metresToY(Math.max(sampleH(x, z), 0));
 
 // ---------- build world ----------
 async function init() {
-  const heights = await loadHeights(import.meta.env.BASE_URL + 'heightmap.png');
+  // fonts are baked into canvas textures and measured for label layout, so wait for them (briefly)
+  const fonts = document.fonts ? Promise.all([document.fonts.load('600 96px Cinzel'), document.fonts.load('italic 500 96px "EB Garamond"')]) : Promise.resolve();
+  const [heights] = await Promise.all([
+    loadHeights(import.meta.env.BASE_URL + 'heightmap.png'),
+    Promise.race([fonts, new Promise((r) => setTimeout(r, 2500))]).catch(() => {}),
+  ]);
   sampleH = makeSampler(heights);
   const dist = coastDistance(heights);
   const terrain = buildTerrain(heights, dist, LOW ? 2 : 1);
@@ -82,6 +94,7 @@ async function init() {
   sea = buildSea(heights, dist);
   scene.add(sea);
   buildSites();
+  buildRivers();
   buildRoads();
   trees = buildTrees();
   buildShips();
@@ -130,11 +143,26 @@ function buildSites() {
     el.className = 'label';
     el.innerHTML = `<span class="num">${i + 1}</span><span class="txt">${s.name}<small>${s.modern.split(' · ')[0]}</small></span>`;
     el.addEventListener('click', () => select(i));
+    // labels sit above the canvas: pass zooming through to the map
+    el.addEventListener('wheel', (e) => { e.preventDefault(); canvas.dispatchEvent(new WheelEvent('wheel', e)); }, { passive: false });
     el.addEventListener('pointerenter', () => { state.hovered = i; });
     el.addEventListener('pointerleave', () => { if (state.hovered === i) state.hovered = -1; });
     $('#labels').appendChild(el);
     siteObjs.push({ site: s, root, model, beam, ring, lamp, hit, el, pos: new THREE.Vector3(x, y, z), scale: 1, w: 0 });
   });
+}
+
+function buildRivers() {
+  // valley-floor traces from the DEM (tools/trace_rivers.py)
+  riverMat = new LineMaterial({ color: 0x3f9fc4, linewidth: 3, transparent: true, opacity: 0.95, depthWrite: false });
+  for (const pts of Object.values(RIVERS)) {
+    const flat = [];
+    const curve = new THREE.CatmullRomCurve3(pts.map(([lon, lat]) => { const [x, z] = lonLatToXZ(lon, lat); return new THREE.Vector3(x, 0, z); }));
+    for (const p of curve.getSpacedPoints(pts.length * 4)) flat.push(p.x, groundY(p.x, p.z) + 0.05, p.z);
+    const line = new Line2(new LineGeometry().setPositions(flat), riverMat);
+    line.renderOrder = 1;
+    scene.add(line);
+  }
 }
 
 function buildRoads() {
@@ -151,7 +179,8 @@ function buildRoads() {
     const draped = curve.getSpacedPoints(n).map((p) => { p.y = groundY(p.x, p.z) + 0.07; return p; });
     const flat = draped.flatMap((p) => [p.x, p.y, p.z]);
     roadMats.forEach((m, k) => {
-      const line = new Line2(new LineGeometry().setPositions(flat), m);
+      // lift the pale centre line a little so it never z-fights its dark casing
+      const line = new Line2(new LineGeometry().setPositions(k ? flat.map((v, q) => (q % 3 === 1 ? v + 0.05 : v)) : flat), m);
       line.renderOrder = 2 + k;
       roadGroup.add(line);
     });
@@ -169,17 +198,17 @@ function buildRoads() {
 function buildTrees() {
   // scatter pines/olives around each site so close-ups have life; purely decorative
   const geo = new THREE.ConeGeometry(0.05, 0.17, 5); geo.translate(0, 0.085, 0);
-  const per = LOW ? 180 : 420;
+  const per = LOW ? 260 : 650;
   const mesh = new THREE.InstancedMesh(geo, new THREE.MeshStandardMaterial({ roughness: 1, flatShading: true }), per * SITES.length);
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), p = new THREE.Vector3(), col = new THREE.Color();
   let n = 0, seed = 7;
   const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
   for (const o of siteObjs) {
     for (let k = 0; k < per * 3 && n < (siteObjs.indexOf(o) + 1) * per; k++) {
-      const a = rnd() * 6.283, r = 1.7 + Math.pow(rnd(), 0.7) * 6.5;
+      const a = rnd() * 6.283, r = 1.7 + Math.pow(rnd(), 1.4) * 13; // dense near the site, thinning out
       const x = o.pos.x + Math.cos(a) * r, z = o.pos.z + Math.sin(a) * r;
       const h = sampleH(x, z);
-      if (h < 6 || h > 1900 || siteObjs.some((s) => Math.hypot(s.pos.x - x, s.pos.z - z) < 1.6)) continue;
+      if (h < 6 || h > 1900 || rnd() > 0.35 + 0.65 * Math.min(1, h / 500) || siteObjs.some((s) => Math.hypot(s.pos.x - x, s.pos.z - z) < 1.6)) continue;
       const s = 0.6 + rnd() * 0.9;
       p.set(x, metresToY(h) - 0.01, z); sc.set(s * (0.7 + rnd() * 0.6), s, s * (0.7 + rnd() * 0.6));
       mesh.setMatrixAt(n, m4.compose(p, q, sc));
@@ -231,13 +260,14 @@ function buildMapLabels() {
   // engraved, map-style names lying on the landscape
   const defs = [
     ['MARE INTERNVM', 34.45, 36.2, 15, 0.1, 0x16384f, 0.5],
-    ['TAVRVS MONS', 34.35, 37.1, 11, 0.42, 0x3a2a18, 0.62],
-    ['CILICIA TRACHEIA', 33.25, 36.52, 8.5, -0.2, 0x3a2a18, 0.55],
-    ['CILICIA PEDIAS', 34.98, 36.72, 6.5, 0.3, 0x3a2a18, 0.55],
-    ['Calycadnus fl.', 33.72, 36.44, 3.4, 0.35, 0x16384f, 0.7],
-    ['Cydnus fl.', 34.97, 36.99, 3, -1.1, 0x16384f, 0.7],
+    ['TAVRVS MONS', 34.35, 37.1, 11, 0.42, 0x2a1c0e, 0.8],
+    ['CILICIA TRACHEIA', 33.2, 36.36, 8, -0.2, 0x2a1c0e, 0.75],
+    ['CILICIA PEDIAS', 34.98, 36.72, 6.5, 0.3, 0x2a1c0e, 0.7],
+    ['Calycadnus fl.', 33.6, 36.52, 3.2, 0.5, 0x16384f, 0.75],
+    ['Lamos fl.', 34.12, 36.66, 2.4, 0.9, 0x16384f, 0.75],
+    ['Cydnus fl.', 34.94, 37.02, 2.6, -1.2, 0x16384f, 0.75],
     ['Pylae Ciliciae', 34.66, 37.3, 3.6, 0, 0x5a1a10, 0.75],
-    ['→ CYPRVS', 33.35, 35.95, 5, 0, 0x16384f, 0.45],
+    ['CYPRVS ↓', 33.35, 35.95, 5, 0, 0x16384f, 0.5],
   ];
   for (const [text, lon, lat, size, rot, color, op] of defs) {
     const c = document.createElement('canvas');
@@ -264,32 +294,32 @@ function buildMapLabels() {
 
 // ---------- lighting (day <-> golden hour) ----------
 const L = {
-  top: [new THREE.Color(0x3f86d6), new THREE.Color(0x26315f)],
-  horizon: [new THREE.Color(0xc4dcec), new THREE.Color(0xf2a25e)],
-  sun: [new THREE.Color(0xfff2dc), new THREE.Color(0xff9d52)],
-  hemiSky: [new THREE.Color(0xdcecff), new THREE.Color(0x8b86b8)],
-  hemiGround: [new THREE.Color(0x8a7a5a), new THREE.Color(0x5a3a2a)],
-  shallow: [new THREE.Color(0x5fd0c8), new THREE.Color(0xd08a6a)],
-  deep: [new THREE.Color(0x0d4470), new THREE.Color(0x1a2a52)],
+  top: [new THREE.Color(0x3f86d6), new THREE.Color(0x44629f)],
+  horizon: [new THREE.Color(0xc4dcec), new THREE.Color(0xf4d2b2)],
+  sun: [new THREE.Color(0xfff2dc), new THREE.Color(0xffb46e)],
+  hemiSky: [new THREE.Color(0xdcecff), new THREE.Color(0xb9c2e6)],
+  hemiGround: [new THREE.Color(0x8a7a5a), new THREE.Color(0x8a6a4a)],
+  shallow: [new THREE.Color(0x5fd0c8), new THREE.Color(0x6fc2b4)],
+  deep: [new THREE.Color(0x0d4470), new THREE.Color(0x14406e)],
 };
 const sunDir = new THREE.Vector3();
 function applyLighting() {
   const t = state.dusk;
   const mix = (k, out) => out.copy(L[k][0]).lerp(L[k][1], t);
-  const elev = THREE.MathUtils.lerp(0.9, 0.16, t), az = THREE.MathUtils.lerp(-2.2, -2.75, t);
+  const elev = THREE.MathUtils.lerp(0.9, 0.32, t), az = THREE.MathUtils.lerp(-2.2, -2.75, t);
   sunDir.set(Math.cos(elev) * Math.sin(az), Math.sin(elev), Math.cos(elev) * Math.cos(az)).normalize();
   mix('sun', sun.color); sun.intensity = THREE.MathUtils.lerp(2.5, 2.9, t);
-  mix('hemiSky', hemi.color); mix('hemiGround', hemi.groundColor); hemi.intensity = THREE.MathUtils.lerp(0.85, 0.5, t);
+  mix('hemiSky', hemi.color); mix('hemiGround', hemi.groundColor); hemi.intensity = THREE.MathUtils.lerp(0.85, 0.7, t);
   const u = sky.material.uniforms;
   mix('top', u.uTop.value); mix('horizon', u.uHorizon.value); u.uSunDir.value.copy(sunDir); u.uSunCol.value.copy(sun.color);
-  scene.fog.color.copy(u.uHorizon.value); scene.fog.density = THREE.MathUtils.lerp(0.0016, 0.0024, t);
+  scene.fog.color.copy(u.uHorizon.value); scene.fog.density = THREE.MathUtils.lerp(0.0016, 0.002, t);
   if (sea) {
     const su = sea.material.uniforms;
     mix('shallow', su.uShallow.value); mix('deep', su.uDeep.value); su.uSun.value.copy(sun.color);
-    su.uLight.value = THREE.MathUtils.lerp(1, 0.82, t);
+    su.uLight.value = THREE.MathUtils.lerp(1, 0.92, t);
     su.fogColor.value.copy(scene.fog.color); su.fogDensity.value = scene.fog.density;
   }
-  for (const o of siteObjs) o.lamp.intensity = t * 14;
+  for (const o of siteObjs) { o.lamp.intensity = t * 2.2; o.lamp.visible = t > 0.01; }
   renderer.toneMappingExposure = THREE.MathUtils.lerp(1.05, 1.15, t);
 }
 
@@ -304,8 +334,10 @@ function flyTo(target, camPos, dur = 2.4, onDone) {
 const OVERVIEW = { target: new THREE.Vector3(8, 0, 22), pos: new THREE.Vector3(-18, 118, 196) };
 function overviewPose() {
   // pull back further on narrow screens so the whole coast fits
-  const k = Math.max(1, 1.25 / camera.aspect);
-  return { target: OVERVIEW.target, pos: OVERVIEW.target.clone().add(OVERVIEW.pos.clone().sub(OVERVIEW.target).multiplyScalar(k)) };
+  const k = Math.max(1, 1.62 / camera.aspect);
+  const off = OVERVIEW.pos.clone().sub(OVERVIEW.target);
+  if (camera.aspect < 1) off.set(0, 190, 130); // portrait: look more steeply down
+  return { target: OVERVIEW.target, pos: OVERVIEW.target.clone().add(off.multiplyScalar(k)) };
 }
 
 function select(i, { instant = false, fromTour = false } = {}) {
@@ -329,6 +361,7 @@ function select(i, { instant = false, fromTour = false } = {}) {
 }
 
 function deselect() {
+  if (state.tour) stopTour();
   state.selected = -1;
   $('#panel').hidden = true; document.body.classList.remove('panel-open');
   for (const b of document.querySelectorAll('#sitelist button')) b.classList.remove('active');
@@ -346,14 +379,17 @@ function goHome() {
 }
 
 // ---------- narration ----------
-let captionTimer = 0;
+let captionTimer = 0, narrateToken = 0;
 function hideCaption() { $('#caption').hidden = true; clearTimeout(captionTimer); }
 async function narrate(key, onEnd) {
   const text = NARRATION[key];
+  const mine = ++narrateToken;
   hideCaption();
   const dur = await sound.narrate(key, () => { hideCaption(); onEnd && onEnd(); });
-  if (dur) { $('#caption').textContent = text; $('#caption').hidden = false; }
-  else if (onEnd) captionTimer = setTimeout(onEnd, 9000); // silent tour still advances
+  if (mine !== narrateToken || (dur === false && sound.enabled)) return; // superseded by a newer narration
+  $('#caption').textContent = text; $('#caption').hidden = false;
+  // without sound the script is shown as a caption for a reading-time interval, and the tour still advances
+  if (!dur) captionTimer = setTimeout(() => { hideCaption(); onEnd && onEnd(); }, 3500 + text.length * 45);
 }
 
 // ---------- tour ----------
@@ -393,7 +429,7 @@ function renderPanel(i) {
     <h3>Sources</h3><ul class="src">${s.sources.map((k) => `<li><a href="${SOURCES[k].url}" target="_blank" rel="noopener">${esc(SOURCES[k].label)}</a></li>`).join('')}</ul>
     <div class="coords">${s.lat.toFixed(4)}° N, ${s.lon.toFixed(4)}° E · <a href="https://www.openstreetmap.org/?mlat=${s.lat}&mlon=${s.lon}#map=15/${s.lat}/${s.lon}" target="_blank" rel="noopener">open map</a></div>`;
   $('#panel-body').scrollTop = 0;
-  $('#listen').onclick = async () => { if (!sound.enabled) await setSound(true); narrate(s.id); };
+  $('#listen').onclick = async () => { if (state.tour) stopTour(); if (!sound.enabled) await setSound(true); narrate(s.id); };
   $('#counter').textContent = `${i + 1} / ${SITES.length}`;
   const panel = $('#panel');
   panel.hidden = false; panel.style.animation = 'none'; void panel.offsetWidth; panel.style.animation = '';
@@ -405,7 +441,7 @@ async function setSound(on) {
   if (on) await sound.enable(); else sound.disable();
   const b = $('#btn-sound');
   b.setAttribute('aria-pressed', String(on)); b.textContent = on ? '🔊 Sound' : '🔇 Sound';
-  if (!on) hideCaption();
+  if (!on) { hideCaption(); if (state.tour) stopTour(); }
 }
 
 function begin(withSound, skipFlight = false) {
@@ -425,6 +461,7 @@ function buildUI() {
     b.onclick = () => select(i);
     list.appendChild(b);
   });
+  if (matchMedia('(pointer: coarse)').matches) $('#hint').textContent = 'Drag to orbit · pinch to zoom · two fingers to pan · tap a beacon';
   $('#begin-sound').onclick = () => begin(true);
   $('#begin-quiet').onclick = () => begin(false);
   $('#panel-close').onclick = deselect;
@@ -445,7 +482,7 @@ function buildUI() {
 
   addEventListener('keydown', (e) => {
     if (e.target.closest('input,textarea') || e.metaKey || e.ctrlKey) return;
-    if (!state.started) { if (e.key === 'Enter') begin(false); return; }
+    if (!state.started) { if (e.key === 'Enter' && !e.target.closest('button, a')) begin(false); return; }
     const k = e.key.toLowerCase();
     if (e.key === 'ArrowRight') step(1);
     else if (e.key === 'ArrowLeft') step(-1);
@@ -485,7 +522,7 @@ function resize() {
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
   for (const o of siteObjs) o.w = 0;
-  for (const m of roadMats) m.resolution.set(w, h);
+  for (const m of [...roadMats, riverMat]) m && m.resolution.set(w, h);
 }
 
 // drop shadows and retina resolution if the device cannot keep up
@@ -532,7 +569,13 @@ function frame() {
   if (Math.abs(sc.right - sh) > 0.5) { sc.left = -sh; sc.right = sh; sc.top = sh; sc.bottom = -sh; sc.near = 50; sc.far = 600; sc.updateProjectionMatrix(); }
   sky.position.copy(camera.position);
 
+  // keep depth precision when far out, so draped roads and rivers do not flicker against the terrain
+  const near = THREE.MathUtils.clamp(dist * 0.02, 0.3, 12);
+  if (Math.abs(camera.near - near) > 0.05) { camera.near = near; camera.updateProjectionMatrix(); }
   sea.material.uniforms.uTime.value = t;
+  // thin the haze when pulled far back (phones), so the whole map stays readable
+  const fogD = THREE.MathUtils.lerp(0.0016, 0.002, state.dusk) * Math.min(1, 240 / dist);
+  scene.fog.density = fogD; sea.material.uniforms.fogDensity.value = fogD;
 
   // sites: scale with distance so they read from afar, pulse beacons
   const W = innerWidth, H = innerHeight;

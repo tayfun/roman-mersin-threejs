@@ -26,13 +26,18 @@ export class Sound {
     }
     await this.ctx.resume();
     this.enabled = true;
-    this.master.gain.linearRampToValueAtTime(1, this.ctx.currentTime + 0.8);
+    this.fade(1, 0.8);
   }
 
   disable() {
     this.enabled = false;
     this.stopVoice();
-    if (this.ctx) this.master.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.3);
+    if (this.ctx) { this.fade(0, 0.3); setTimeout(() => { if (!this.enabled) this.ctx.suspend(); }, 400); }
+  }
+
+  fade(to, secs) {
+    const g = this.master.gain, t = this.ctx.currentTime;
+    g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(to, t + secs);
   }
 
   async load(name) {
@@ -64,7 +69,7 @@ export class Sound {
     const t = this.ctx.currentTime;
     const duck = this.voice ? 0.45 : 1;
     const set = (n, v) => this.loops[n] && this.loops[n].gain.setTargetAtTime(v * duck, t, 0.6);
-    set('sea', sea * 0.55); set('hills', hills * 0.4); set('music', music * 0.32);
+    set('sea', sea * 0.5); set('hills', hills * 0.45); set('music', music * 0.4);
   }
 
   play(name, vol = 0.5) {

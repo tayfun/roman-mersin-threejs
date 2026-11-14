@@ -11,7 +11,7 @@ npm run build    # static site in dist/
 
 - **Research and citations:** [SOURCES.md](SOURCES.md)
 - **Controls:** drag to orbit, scroll to zoom, right-drag to pan. `1–0` jump to a site, `←/→` previous/next, `T` tour, `M` sound, `G` golden hour, `R` roads, `H` overview, `Esc` close.
-- Add `?q=low` to the URL for a lighter render (also switches on automatically on slow devices).
+- Add `?q=low` to the URL for a lighter render (slow devices automatically drop shadows and retina resolution).
 
 ## How it is built
 - `public/heightmap.png` — real elevation (SRTM via Mapzen Terrarium tiles), built by `tools/build_heightmap.py`.

@@ -177,11 +177,10 @@ export function buildSea(heights, dist) {
         vec4 m = texture2D(uMap, vUv);
         float depth = m.r, land = m.g;
         vec3 c = mix(uShallow, uDeep, smoothstep(0.0, 0.55, depth));
-        float wv = wave(vWorld.xz*0.9) + 1.5*wave(vWorld.xz*0.12);
-        c += 0.022*wv;
+        float d = length(cameraPosition - vWorld);
+        c += 0.03*wave(vWorld.xz*0.9) * (1.0 - smoothstep(30.0, 110.0, d)); // ripples only where they resolve
         // sun glitter
         vec3 v = normalize(cameraPosition - vWorld);
-        float d = length(cameraPosition - vWorld);
         float gl = pow(max(0.0, wave(vWorld.xz*6.0+3.0)*wave(vWorld.zx*3.7-1.0)*0.5+0.5), 9.0) * (0.3+0.7*pow(1.0-v.y,2.0));
         c += uSun * gl * 0.28 * (1.0 - smoothstep(8.0, 45.0, d)); // fades out before it can alias
         // surf line breathing against the shore
