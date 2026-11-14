@@ -111,7 +111,7 @@ export default function adamkayalar(g) {
   });
   // ---- visitors on the rock terrace below the reliefs (the figures are about life-size)
   for (const [x, i] of [[-0.42, 0], [0.25, 3], [0.58, 4]]) person(g, x, mid(x) + FACE + 0.035, 0.066, i, 1.25);
-  for (const [x, y] of [[-0.86, 0.3], [-0.58, 0.37], [-0.25, 0.36], [0.085, 0.38], [0.41, 0.36], [0.8, 0.3], [-0.4, -0.08], [0.2, -0.1], [0.6, -0.06]]) { // caper bushes hanging from cracks
+  for (const [x, y] of [[-0.86, 0.3], [-0.58, 0.37], [-0.3, 0.4], [0.085, 0.38], [0.41, 0.36], [0.8, 0.3], [-0.4, -0.08], [0.2, -0.1], [0.6, -0.06]]) { // caper bushes hanging from cracks
     const z = mid(x) + FACE + 0.006; for (let k = 0; k < 3; k++) put(g, new THREE.IcosahedronGeometry(0.014 - k * 0.003, 0), M.shrub, x + (k - 1) * 0.012, y - k * 0.014, z + 0.004).scale.set(1.3, 0.8, 0.6);
   }
   // ---- stream bed boulders and oleander; outcrops and scree on the south bank; pines on the plateau; low maquis on the near rim

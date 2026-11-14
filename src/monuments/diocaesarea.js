@@ -12,9 +12,10 @@ export default function diocaesarea(g) {
     h: (x, z) => {
       let y = 0.07 + fbm(x * 2.2 + 3, z * 2.2) * 0.03 + hill(x, z, 0.82, 0.22, 0.26, 0.16) + hill(x, z, -0.75, 0.75, 0.3, 0.06);
       const d = Math.hypot(x - TH.x, z - TH.z);
-      if (open(x, z)) { if (d < TH.r1 + 0.14) y = lerp(TH.y - 0.012, y, sm(TH.r1 + 0.02, TH.r1 + 0.14, d)); } // level ground before the orchestra and stage
-      else if (d < TH.r1) y = Math.min(y, TH.y - 0.01 + Math.max(0, (d - TH.r0) / (TH.r1 - TH.r0)) * top);
-      else if (d < TH.r1 + 0.16) y = Math.min(y, lerp(TH.y + top - 0.01, y, sm(TH.r1, TH.r1 + 0.16, d)));
+      const sd = (x - TH.x) * Math.sin(TR) + (z - TH.z) * Math.cos(TR); // signed distance across the theatre's diameter
+      const yOpen = d < TH.r1 + 0.14 ? lerp(TH.y - 0.012, y, sm(TH.r1 + 0.02, TH.r1 + 0.14, d)) : y; // level ground before the orchestra and stage
+      const yBowl = d < TH.r1 ? Math.min(y, TH.y - 0.01 + Math.max(0, (d - TH.r0) / (TH.r1 - TH.r0)) * top) : d < TH.r1 + 0.16 ? Math.min(y, lerp(TH.y + top - 0.01, y, sm(TH.r1, TH.r1 + 0.16, d))) : y;
+      y = sd > -0.035 && d < TH.r1 + 0.14 ? Math.min(yOpen, lerp(yBowl, yOpen, sm(-0.035, -0.012, sd))) : yBowl; // the two meet under the end walls, never above them
       return y;
     },
     tint: (x, z, y, s, c, P) => {

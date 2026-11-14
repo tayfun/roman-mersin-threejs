@@ -66,7 +66,7 @@ export default function tarsus(g) {
   rubble(dg, 0.11, 0.17, 6, 0.1, 0.024, M.concrete, 5); rubble(dg, -0.3, 0.23, 3, 0.06, 0.02, M.marble, 8);
   for (const [x, z, hh] of [[-0.3, -0.14, 0.215], [0.05, -0.14, 0.215], [0.33, 0.14, 0.205], [-0.2, 0.14, 0.215], [-0.42, 0.05, 0.215], [0.2, -0.14, 0.215]]) tree(dg, 'shrub', x, z, 1, hh, x * 9);
   // ---- Roman bath ("Altından Geçme"): a thick mass of mortared rubble with brick bands; people walk under its arch
-  const bx = -0.66, bz = -0.42, by = Y(bx, bz) - 0.01, bg = new THREE.Group(); bg.position.set(bx, by, bz); bg.rotation.y = 0.5; g.add(bg);
+  const bx = -0.71, bz = -0.37, by = Y(bx, bz) - 0.01, bg = new THREE.Group(); bg.position.set(bx, by, bz); bg.rotation.y = 0.5; g.add(bg);
   archWall(bg, M.brick, 0.34, 0.26, 0.09, [{ x: -0.03, w: 0.11, h: 0.16 }], 0, 0, 0);
   for (const s of [-1, 1]) archRing(bg, M.brick, 0.11, 0.16, 0.01, -0.03, 0, s * 0.049, 0, 9);
   [[-0.13, 0.07, 0.09], [-0.045, 0.055, 0.07], [0.02, 0.018, 0.06], [0.09, 0.034, 0.08]].forEach(([x, hh, w]) => B(bg, M.brick, w, hh, 0.085, x, 0.26, 0)); // broken top, high at one end
@@ -91,7 +91,7 @@ export default function tarsus(g) {
   for (let k = 0; k < 12; k++) { const z = -0.85 + k * 0.15, x = RC(z) + (k % 2 ? 0.17 : -0.17); if (Math.hypot(x, z) < 0.93 && Math.abs(z - rz) > 0.08) tree(g, 'reed', x, z, 1.2, Y(x, z), k); }
   // ---- an orange grove in one quarter; palms and a few cypresses as accents (kept clear of the gate)
   for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) { const x = 0.26 + i * 0.1 + (j % 2) * 0.02, z = 0.5 + j * 0.1 + (i % 2) * 0.02; if (Math.hypot(x, z) < 0.9 && Math.abs(river(x, z)) > 0.2) tree(g, 'citrus', x, z, 1.25, Y(x, z), i * 3 + j); }
-  for (const [x, z] of [[0.46, 0.3], [0.9, -0.05], [-0.9, 0.42], [0.46, -0.36], [0.02, 0.84]]) tree(g, 'palm', x, z, 1.15, Y(x, z), x * 7);
+  for (const [x, z] of [[0.46, 0.3], [0.9, -0.05], [-0.83, 0.38], [0.46, -0.36], [0.02, 0.84]]) tree(g, 'palm', x, z, 1.15, Y(x, z), x * 7);
   for (const [x, z] of [[-0.5, -0.82], [-0.92, -0.05]]) tree(g, 'cypress', x, z, 1.1, Y(x, z), z * 3);
   scatter(g, ['olive', 'shrub', 'oak'], 9, [-0.95, -0.95, 0.5, 0.95], Y, 21, 0.8, 1.1, (x, z) => !inPit(x, z, 0.1) && Math.hypot(x - dx, z - dz) > 0.5 && Math.hypot(x - GX, z - GZ) > 0.34 && !town(x, z) && Math.hypot(x - bx, z - bz) > 0.25 && !(x > 0.12 && z > 0.42) && !(Math.abs(x - GX) < 0.2 && z > 0.3));
   for (const [x, z, i] of [[0.06, -0.02, 0], [0.12, -0.2, 2], [0.02, 0.14, 4], [GX - 0.01, GZ + 0.02, 3], [GX + 0.05, GZ + 0.2, 1], [GX - 0.1, GZ - 0.22, 0], [GX - 0.02, GZ + 0.34, 2], [wx + 0.06, wz + 0.03, 4], [bx - 0.02, bz + 0.02, 5], [0.2, -0.46, 5]]) person(g, x, z, Y(x, z) + (inPit(x, z) ? 0.03 : 0.002), i);

@@ -25,7 +25,7 @@ export default function kanlidivane(g) {
     },
   });
   // ---- the sinkhole walls: stepped ledges of pale limestone, rust-red and black with runoff
-  pitSkin(g, pit, PX, PZ, Y, -0.4, { level: 0.925, tiers: 4, step: 0.022, amp: 0.018, seed: 3, cap: 0.085 }); // set well inside the terrain's own drop, its cap forming the bare rock lip
+  pitSkin(g, pit, PX, PZ, Y, -0.4, { level: 0.925, tiers: 4, step: 0.022, amp: 0.018, seed: 3, cap: 0.075 }); // set well inside the terrain's own drop, its cap forming the bare rock lip
   for (let k = 0; k < 34; k++) { const a = k * 0.19 + 0.2 * Math.sin(k), [x, z] = rim(a, 0.74 + (k % 4) * 0.05); boulder(g, x, Y(x, z) + 0.01, z, 0.022 + (k % 5) * 0.009, k, M.karstFlat); } // talus apron hiding the foot of the wall
   for (let k = 0; k < 16; k++) { const a = k * 0.4 + 0.1, [x, z] = rim(a, 0.9); for (let q = 0; q < 2; q++) tree(g, 'oak', x + q * 0.012, z + q * 0.008, 0.38 - q * 0.1, -0.09 - (k % 3) * 0.09 - q * 0.012, k + q); } // bushes rooted in the ledges
   const onLip = (a, off) => { const [x, z, r] = rim(a, 1.0); return [PX + Math.cos(a) * (r + off), PZ + Math.sin(a) * (r + off)]; };
@@ -40,11 +40,15 @@ export default function kanlidivane(g) {
   rubble(tg, 0.0, 0.11, 4, 0.14, 0.022, M.limestone, 3);
   // ---- reliefs cut in the wall below the tower: a family of six in a framed niche; a single figure further round
   const niche = (a, depth, w, hh, n) => {
-    const [x, z] = rim(a, 0.93), ng = new THREE.Group(); ng.position.set(x, depth, z); ng.rotation.y = -a + Math.PI / 2 + Math.PI; g.add(ng);
-    B(ng, M.karstFlat, w + 0.03, hh + 0.03, 0.03, 0, -0.015, -0.012); B(ng, M.plaster, w, hh, 0.003, 0, 0, 0.003); // shallow dressed recess, flush with the wall
-    for (let k = 0; k < n; k++) { const seated = n === 6 && k < 2, fh = seated ? hh * 0.66 : hh * (k > 3 ? 0.62 : 0.84), fx = -w / 2 + (k + 0.5) * w / n; const f = put(ng, new THREE.CapsuleGeometry(w / n * 0.3, fh - w / n * 0.6, 3, 8), M.relief, fx, fh / 2 + 0.003, 0.014); f.scale.z = 0.5; put(ng, new THREE.SphereGeometry(w / n * 0.26, 8, 6), M.relief, fx, fh + w / n * 0.2, 0.014).scale.z = 0.6; if (seated) B(ng, M.relief, w / n * 0.8, fh * 0.35, 0.008, fx, 0.003, 0.012); }
+    const [x1, z1] = rim(a - 0.09, 0.84), [x2, z2] = rim(a + 0.09, 0.84), ng = new THREE.Group(); // seated on the chord of the wall at this height
+    ng.position.set((x1 + x2) / 2, depth, (z1 + z2) / 2); ng.rotation.y = Math.atan2(x2 - x1, z2 - z1) - Math.PI / 2; g.add(ng);
+    if (Math.hypot(ng.position.x + Math.sin(ng.rotation.y) * 0.1 - PX, ng.position.z + Math.cos(ng.rotation.y) * 0.1 - PZ) > Math.hypot(ng.position.x - PX, ng.position.z - PZ)) ng.rotation.y += Math.PI; // face into the pit
+    B(ng, M.karstFlat, w + 0.05, hh + 0.07, 0.12, 0, -0.035, -0.062); // dressed rock buttress running back into the cliff
+    B(ng, M.karstDark, w, hh, 0.004, 0, 0, 0.0); // shadowed recess
+    for (const sd of [-1, 1]) B(ng, M.limestone, 0.008, hh + 0.008, 0.006, sd * (w / 2 + 0.004), 0, 0.001); B(ng, M.limestone, w + 0.016, 0.008, 0.006, 0, hh, 0.001); // jambs and lintel
+    for (let k = 0; k < n; k++) { const seated = n === 6 && k < 2, fh = seated ? hh * 0.66 : hh * (k > 3 ? 0.62 : 0.84), fx = -w / 2 + (k + 0.5) * w / n; const f = put(ng, new THREE.CapsuleGeometry(w / n * 0.3, fh - w / n * 0.6, 3, 8), M.relief, fx, fh / 2 + 0.003, 0.006); f.scale.z = 0.5; put(ng, new THREE.SphereGeometry(w / n * 0.26, 8, 6), M.relief, fx, fh + w / n * 0.2, 0.006).scale.z = 0.6; if (seated) B(ng, M.relief, w / n * 0.8, fh * 0.35, 0.008, fx, 0.003, 0.005); }
   };
-  niche(TA + 0.55, -0.09, 0.26, 0.11, 6); niche(TA + 1.25, -0.1, 0.05, 0.1, 1);
+  niche(TA + 0.6, -0.1, 0.2, 0.1, 6); niche(TA + 1.3, -0.1, 0.045, 0.095, 1);
   // ---- basilicas on the lip, apses to the east
   function basilica(a, off, L, W, H, kind) {
     const [x, z] = onLip(a, off), b = new THREE.Group(); b.position.set(x, Y(x, z) - 0.008, z); b.rotation.y = kind === 'IV' ? 0.1 : (a * 3 % 0.4) - 0.2; g.add(b);

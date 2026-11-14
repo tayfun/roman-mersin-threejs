@@ -11,7 +11,7 @@ export default function anemurium(g) {
     water: true, dry: 0.8,
     h: (x, z) => {
       let y = 0.035 + sm(0.35, -1.0, x) * 0.27 + fbm(x * 2.4, z * 2.4 + 8) * 0.022;
-      y += hill(x, z, 0.12, 0.8, 0.24, 0.13); // the cape and its citadel
+      y += hill(x, z, 0.1, 0.86, 0.17, 0.21); // the cape: a crag standing clear of the town
       const pd = Math.max(Math.abs(x - 0.3) / 0.17, Math.abs(z - 0.42) / 0.16); if (pd < 1.3) y = lerp(0.062, y, sm(1.0, 1.3, pd)); // level court of the palaestra
       y -= sm(shore(z) - 0.05, shore(z) + 0.2, x) * 0.22;
       const d = Math.hypot(x - TH.x, z - TH.z);
@@ -20,7 +20,7 @@ export default function anemurium(g) {
       return y;
     },
     tint: (x, z, y, s, c, P) => {
-      c.lerp(P.rock, 0.25);
+      c.lerp(P.rock, 0.25 + sm(0.04, 0.12, hill(x, z, 0.1, 0.86, 0.17, 0.21)) * 0.6);
       if (Math.abs(x - 0.3 - 0.03 * Math.sin(z * 5)) < 0.026 && z > -0.9 && z < 0.24 && y > 0.02) c.setHex(0xcfc6b2); // the paved main street
       if (x > shore(z) - 0.13 && y > 0) c.lerp(P.sand, sm(shore(z) - 0.13, shore(z) - 0.04, x)); // beach
     },
@@ -76,10 +76,10 @@ export default function anemurium(g) {
     if (n % 3 === 1) { B(t, M.rubble, w * 1.3, 0.02, 0.01, 0, 0, w * 1.25); for (const s of [-1, 1]) B(t, M.rubble, 0.01, 0.02, w * 0.6, s * w * 0.65, 0, w * 0.97); } // forecourt
   }
   // ---- citadel on the cape; aqueduct channel contouring the upper slope, on arches where it crosses a gully
-  const cp = [[-0.16, 0.66], [-0.04, 0.62], [0.02, 0.67], [0.14, 0.62], [0.2, 0.67], [0.32, 0.63], [0.4, 0.68]]; // medieval curtain across the neck of the cape
-  curtain(g, M.rubble, cp, 0.07, 0.02, { closed: false, tower: false, Y });
-  for (const k of [1, 3, 5]) { const [x, z] = cp[k], y = Y(x, z) - 0.01; B(g, M.rubble, 0.06, 0.11, 0.06, x, y, z, 0.2); for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) B(g, M.rubble, 0.014, 0.008, 0.014, x + sx * 0.022, y + 0.11, z + sz * 0.022, 0.2); }
-  { const ky = Y(0.12, 0.8) - 0.008; B(g, M.rubble, 0.09, 0.075, 0.07, 0.12, ky, 0.8, 0.3); B(g, M.rubble, 0.05, 0.03, 0.04, 0.1, ky + 0.075, 0.79, 0.3); B(g, M.rubble, 0.12, 0.03, 0.014, 0.2, ky, 0.84, -0.2); } // keep on the summit
+  const cp = [[-0.08, 0.78], [0.0, 0.75], [0.1, 0.765], [0.2, 0.75], [0.28, 0.79]]; // medieval curtain on the crag's landward shoulder
+  curtain(g, M.rubble, cp, 0.05, 0.018, { closed: false, tower: false, Y });
+  for (const k of [1, 3]) { const [x, z] = cp[k], y = Y(x, z) - 0.01; B(g, M.rubble, 0.05, 0.09, 0.05, x, y, z, 0.2); for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) B(g, M.rubble, 0.012, 0.008, 0.012, x + sx * 0.018, y + 0.09, z + sz * 0.018, 0.2); }
+  { const ky = Y(0.1, 0.86) - 0.012; B(g, M.rubble, 0.075, 0.14, 0.065, 0.1, ky, 0.86, 0.3); for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1], [0, 1], [0, -1]]) B(g, M.rubble, 0.014, 0.01, 0.014, 0.1 + sx * 0.028, ky + 0.14, 0.86 + sz * 0.024, 0.3); B(g, M.dark, 0.012, 0.03, 0.003, 0.092, ky + 0.07, 0.892, 0.3); } // the keep on the summit
   const aq = []; for (let k = 0; k <= 8; k++) aq.push([-0.74 + 0.03 * Math.sin(k), -0.36 + k * 0.1]);
   curtain(g, M.rubble, aq.filter(([x, z]) => Math.hypot(x, z) < 0.92), 0.022, 0.014, { closed: false, tower: false, Y, skip: [4], merlons: false });
   archWall(g, M.rubble, 0.11, 0.05, 0.016, [{ x: -0.025, w: 0.03, h: 0.036 }, { x: 0.025, w: 0.03, h: 0.036 }], -0.725, Y(-0.725, 0.09) - 0.02, 0.09, Math.PI / 2);
@@ -90,6 +90,6 @@ export default function anemurium(g) {
   vault(g, M.rubbleDS, 0.075, 0.12, 0.075, -0.06, Y(-0.06, -0.3) - 0.006, -0.3, Math.PI / 2, 2); vault(g, M.rubbleDS, 0.06, 0.1, 0.06, -0.06, Y(-0.06, -0.225) - 0.006, -0.225, Math.PI / 2, 1);
   rubble(g, 0.22, 0.12, 8, 0.4, 0.02, M.rubble, 5, Y);
   // ---- a bare, scrubby headland: maquis and the odd olive
-  scatter(g, ['shrub', 'shrub', 'shrub', 'olive'], 26, [-0.95, -0.4, 0.5, 0.95], Y, 9, 0.6, 0.85, (x, z) => Y(x, z) > 0.04 && Math.hypot(x - TH.x, z - TH.z) > 0.33 && Math.hypot(x - ox, z - oz) > 0.24 && !(x > -0.2 && x < 0.5 && z > 0.2 && z < 0.62) && !(x > 0.14 && x < 0.46 && z < 0.2) && Math.hypot(x - cx, z - cz) > 0.13 && Math.abs(x - 0.3) > 0.04);
+  scatter(g, ['shrub', 'shrub', 'shrub', 'olive'], 26, [-0.95, -0.4, 0.5, 0.95], Y, 9, 0.6, 0.85, (x, z) => !(x > -0.2 && x < 0.5 && z > 0.58) && Y(x, z) > 0.04 && Math.hypot(x - TH.x, z - TH.z) > 0.33 && Math.hypot(x - ox, z - oz) > 0.24 && !(x > -0.2 && x < 0.5 && z > 0.2 && z < 0.62) && !(x > 0.14 && x < 0.46 && z < 0.2) && Math.hypot(x - cx, z - cz) > 0.13 && Math.abs(x - 0.3) > 0.04);
   for (const [x, z, i] of [[-0.24, -0.02, 0], [-0.2, 0.02, 1], [0.3, 0.44, 2], [0.31, -0.1, 3], [0.26, 0.38, 4], [-0.2, -0.62, 5], [0.56, 0.3, 2], [0.3, -0.5, 1]]) person(g, x, z, Y(x, z) + 0.004, i);
 }

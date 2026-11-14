@@ -14,6 +14,7 @@ export default function elaiussa(g) {
       let y = 0.05 + fbm(x * 2.3, z * 2.3 + 4) * 0.02;
       y += hill(x, z, -0.06, -0.6, 0.5, 0.4) + hill(x, z, 0.66, -0.52, 0.3, 0.13); // theatre hill, necropolis ridge
       y = lerp(y, 0.13, 1 - sm(0.16, 0.28, Math.hypot(x - TP.x, z - TP.z))); // levelled temple terrace
+      { const ad = Math.max(Math.abs(x - 0.52) / 0.2, Math.abs(z - 0.06) / 0.17); if (ad < 1.4) y = lerp(0.066, y, sm(1.0, 1.4, ad)); } // level court of the agora
       const shore = 0.46 + 0.09 * Math.sin(x * 4.2 + 0.8) + fbm(x * 4, 2) * 0.05;
       y -= sm(shore - 0.06, shore + 0.16, z) * 0.2;
       y = Math.max(y, 0.045 * (1 - sm(0.5, 1.1, pen(x, z))) - 0.012); // the former island
@@ -44,7 +45,7 @@ export default function elaiussa(g) {
   archWall(g, M.limestone, chord, 0.032, 0.012, [-0.24, -0.12, 0, 0.12, 0.24].map((x) => ({ x, w: 0.035, h: 0.026 })), TH.x, TH.y - 0.006, sz);
   archWall(g, M.limestone, chord + 0.04, 0.085, 0.03, [{ x: -0.18, w: 0.05, h: 0.065 }, { x: 0, w: 0.07, h: 0.075 }, { x: 0.18, w: 0.05, h: 0.065 }], TH.x, TH.y - 0.012, sz + 0.1);
   B(g, M.limestone, 0.16, 0.05, 0.03, TH.x - 0.27, TH.y + 0.073, sz + 0.1); B(g, M.limestone, 0.07, 0.03, 0.03, TH.x - 0.31, TH.y + 0.123, sz + 0.1); // one end of the scaenae wall stands higher
-  for (const s of [-1, 1]) { B(g, M.limestone, 0.04, 0.1, 0.13, TH.x + s * (chord / 2 + 0.04), TH.y - 0.012, sz + 0.05); B(g, M.rubble, 0.1, 0.045, 0.03, TH.x + s * (chord / 2 + 0.1), TH.y - 0.012, sz + 0.1); }
+  for (const s of [-1, 1]) { B(g, M.limestone, 0.04, 0.1, 0.13, TH.x + s * (chord / 2 + 0.04), TH.y - 0.012, sz + 0.05); if (s < 0) B(g, M.limestone, 0.1, 0.045, 0.03, TH.x + s * (chord / 2 + 0.1), TH.y - 0.012, sz + 0.1); }
   for (let i = 0; i < 6; i++) col(g, TH.x - 0.26 + i * 0.104, sz + 0.075, i === 4 ? 0.13 : 0.03 + (i % 2) * 0.025, { y: TH.y + 0.018, r: 0.012, broken: true, seed: i });
   drums(g, TH.x + 0.12, sz + 0.2, 4, 0.012, 4, Y(TH.x + 0.12, sz + 0.2)); rubble(g, TH.x - 0.2, sz + 0.2, 6, 0.2, 0.018, M.limestone, 3, Y);
   // ---- agora: walled court, lion fountains at the entrance, round shrine, and the church with an apse at each end
@@ -57,7 +58,7 @@ export default function elaiussa(g) {
   put(g, new THREE.PlaneGeometry(0.19, 0.085), M.mosaic, ax, ay + 0.012, cz2).rotation.x = -Math.PI / 2;
   for (let i = 0; i < 4; i++) for (const sd of [-1, 1]) col(g, ax - 0.06 + i * 0.04, cz2 + sd * 0.022, (i + (sd > 0 ? 1 : 0)) % 3 === 0 ? 0.06 : 0.018, { y: ay + 0.012, r: 0.005, broken: true, shaft: M.weathered });
   cyl(g, M.marble, 0.03, 0.032, 0.02, ax + 0.06, ay + 0.01, az + 0.08, 14); for (let k = 0; k < 5; k++) col(g, ax + 0.06 + Math.cos(k * 1.26) * 0.024, az + 0.08 + Math.sin(k * 1.26) * 0.024, k < 2 ? 0.07 : 0.02, { y: ay + 0.03, r: 0.005, broken: k >= 2 });
-  for (const s of [-1, 1]) lion(g, ax - 0.09 + s * 0.045, az + 0.17, ay, 0, 1.5);
+  for (const s of [-1, 1]) lion(g, ax - 0.09 + s * 0.04, az + 0.17, ay, 0, 1.15);
   // ---- harbour baths: tall rubble-and-brick walls with arched openings, one vault standing, an apse half fallen
   const bx = -0.32, bz = 0.16, by = Y(bx, bz) - 0.008, bg = new THREE.Group(); bg.position.set(bx, by, bz); bg.rotation.y = 0.12; g.add(bg);
   archWall(bg, M.brick, 0.3, 0.17, 0.03, [{ x: -0.08, w: 0.07, h: 0.12 }, { x: 0.06, w: 0.07, h: 0.12 }], 0, 0, -0.08);
@@ -78,7 +79,7 @@ export default function elaiussa(g) {
   drums(g, TP.x + 0.14, TP.z + 0.02, 4, 0.0125, 7, Y(TP.x + 0.14, TP.z + 0.02));
   // ---- aqueduct from the Lamos, ending in a broken pier
   for (let k = 0; k < 2; k++) {
-    const x = 0.6 + k * 0.24, z = -0.2 - k * 0.05, y = Y(x, z) - 0.02;
+    const x = 0.58 + k * 0.215, z = -0.2 - k * 0.045, y = Y(x, z) - 0.02;
     archWall(g, M.honey, 0.24, 0.2 - k * 0.03, 0.035, [-0.078, 0, 0.078].map((ox) => ({ x: ox, w: 0.056, h: 0.15 - k * 0.03 })), x, y, z, 0.2);
   }
   B(g, M.honey, 0.035, 0.12, 0.035, 0.44, Y(0.44, -0.17) - 0.02, -0.168, 0.2);

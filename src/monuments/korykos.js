@@ -5,25 +5,26 @@ import * as THREE from 'three';
 import { M, B, put, col, rubble, tree, scatter, person, base, hill, sm, fbm, ell, archWall, archRing, apse, gable, sarcophagus, curtain, galley, cyl, boulder, vault } from './kit.js';
 
 export default function korykos(g) {
-  const IX = -0.4, IZ = 0.68, CX = 0.36, CZ = 0.08;
+  const IX = -0.36, IZ = 0.58, CX = 0.36, CZ = 0.08, MX = CX + 0.4;
   const shore = (x) => 0.3 + 0.08 * Math.sin(x * 3.0 + 2.2) + fbm(x * 4, 5) * 0.03;
   const scarp = (x) => -0.44 - 0.04 * Math.sin(x * 4) - 0.03 * Math.sin(x * 9 + 1); // rock step of the necropolis
   const SH = (x) => 0.06 + fbm(x * 5 + 2, 7) * 0.07; // its height varies along its length
-  const moat = (x, z) => Math.abs(x - (CX + 0.37)) < 0.03 && z > CZ - 0.24 && z < 0.5;
+  const moat = (x, z) => Math.abs(x - MX) < 0.075 && z > CZ - 0.3 && z < 0.5;
   const Y = base(g, {
     water: true, dry: 0.65,
     h: (x, z) => {
       let y = 0.045 + fbm(x * 2.3 + 4, z * 2.3) * 0.018 + sm(-0.1, -0.9, z) * 0.05;
       if (x > -0.6 && x < 0.5) y += (SH(x) + fbm(x * 6, z * 6) * 0.02) * sm(scarp(x) + 0.012, scarp(x) - 0.012, z) * sm(-0.6, -0.4, x) * sm(0.5, 0.3, x) * sm(-0.98, -0.7, z);
       y -= sm(shore(x) - 0.05, shore(x) + 0.2, z) * 0.22;
-      y -= (1 - sm(0.02, 0.045, Math.abs(x - (CX + 0.37)))) * sm(CZ - 0.3, CZ - 0.2, z) * 0.1; // moat on the landward side
-      return Math.max(y, hill(x, z, IX, IZ, 0.215, 0.075) - 0.022 + fbm(x * 14, z * 14) * 0.006); // the islet
+      if (z > CZ - 0.25) y -= (1 - sm(0.022, 0.03, Math.abs(x - MX))) * 0.11; // the moat: a steep-sided rock cut on the landward side, open to the sea
+      return Math.max(y, hill(x, z, IX, IZ, 0.2, 0.075) - 0.022 + fbm(x * 14, z * 14) * 0.006); // the islet, all but filled by its castle
     },
     tint: (x, z, y, s, c, P) => {
       c.lerp(P.rock, 0.2);
       if (Math.abs(z + 0.14 - 0.05 * Math.sin(x * 3)) < 0.022 && y > 0.02) c.lerp(P.earth, 0.85); // the tomb avenue
       if (z > shore(x) - 0.16 && y > 0) c.lerp(P.sand, sm(shore(x) - 0.16, shore(x) - 0.06, z)); // the beach
-      if (Math.hypot(x - IX, z - IZ) < 0.3 && y > 0) c.copy(P.rock);
+      if (Math.hypot(x - IX, z - IZ) < 0.24 && y > 0) c.copy(P.rock).lerp(P.sand, 0.25);
+      if (Math.abs(x - MX) < 0.04 && z > CZ - 0.27 && y < 0.05) c.copy(P.rock);
     },
   });
   const slit = (grp, x, y, z, ry = 0) => B(grp, M.dark, 0.006, 0.026, 0.004, x, y, z, ry);
@@ -52,20 +53,20 @@ export default function korykos(g) {
   for (const [x, z, w] of [[-0.07, -0.03, 0.08], [0.09, 0.02, 0.06]]) { B(g, M.limestone, w, 0.05, 0.045, CX + x, iy, CZ + z); gable(g, M.tiles, 0.05, w + 0.008, 0.016, CX + x, iy + 0.05, CZ + z, Math.PI / 2); apse(g, M.limestone, 0.02, 0.05, CX + x + w / 2, iy, CZ + z, -Math.PI / 2); }
   for (let k = 0; k < 9; k++) { const t = (k + 1) / 11, x = CX - 0.3 + (IX + 0.2 - CX + 0.3) * t, z = CZ + 0.2 + (IZ - 0.06 - CZ - 0.2) * t; boulder(g, x, -0.004, z, 0.018 + (k % 3) * 0.006, k, M.karstFlat); }
   // ---- sea castle on the islet: straight south and west walls, a curved rampart to the north-east; eight unlike towers
-  const SW = [IX - 0.17, IZ + 0.12], R = 0.31, sea = [], yI = 0.028;
+  const SW = [IX - 0.13, IZ + 0.13], R = 0.26, sea = [], yI = 0.028;
   const pts = [SW, [SW[0] + R / 2, SW[1]], [SW[0] + R, SW[1]]]; for (let k = 1; k <= 4; k++) { const a = -k * Math.PI / 8; pts.push([SW[0] + Math.cos(a) * R, SW[1] + Math.sin(a) * R]); } pts.push([SW[0], SW[1] - R * 0.5]);
   curtain(g, M.honey, pts, 0.08, 0.024, { tower: false, Y: () => yI + 0.01 });
   pts.forEach(([x, z], k) => {
     const hh = [0.12, 0.1, 0.18, 0.11, 0.12, 0.1, 0.145, 0.11][k];
-    if (k < 3) { B(g, M.honey, 0.074, hh, 0.074, x, yI, z); for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1], [0, 1], [0, -1], [1, 0], [-1, 0]]) B(g, M.honey, 0.012, 0.008, 0.012, x + sx * 0.03, yI + hh, z + sz * 0.03); slit(g, x, yI + hh * 0.6, z + 0.038); }
-    else { cyl(g, M.honey, 0.036, 0.04, hh, x, yI, z, 14); for (let m = 0; m < 8; m++) { const a = m / 8 * 6.283; B(g, M.honey, 0.011, 0.008, 0.008, x + Math.cos(a) * 0.032, yI + hh, z + Math.sin(a) * 0.032, -a + Math.PI / 2); } }
+    if (k < 3) { B(g, M.honey, 0.064, hh, 0.064, x, yI, z); for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1], [0, 1], [0, -1], [1, 0], [-1, 0]]) B(g, M.honey, 0.012, 0.008, 0.012, x + sx * 0.026, yI + hh, z + sz * 0.026); slit(g, x, yI + hh * 0.6, z + 0.033); }
+    else { cyl(g, M.honey, 0.032, 0.035, hh, x, yI, z, 14); for (let m = 0; m < 8; m++) { const a = m / 8 * 6.283; B(g, M.honey, 0.011, 0.008, 0.008, x + Math.cos(a) * 0.028, yI + hh, z + Math.sin(a) * 0.028, -a + Math.PI / 2); } }
   });
   archWall(g, M.honey, 0.07, 0.08, 0.026, [{ x: 0, w: 0.03, h: 0.05 }], (pts[5][0] + pts[6][0]) / 2, yI, (pts[5][1] + pts[6][1]) / 2, Math.PI * 0.1); // gate on the landward side
-  vault(g, M.honeyDS, 0.045, 0.08, 0.03, IX - 0.02, yI, IZ + 0.0, 0.4, 2); // chapel inside
-  for (let k = 0; k < 12; k++) { const a = k / 12 * 6.283; put(g, new THREE.DodecahedronGeometry(0.018 + (k % 3) * 0.008, 0), M.karstFlat, IX + Math.cos(a) * 0.27, 0.0, IZ + Math.sin(a) * 0.21); }
+  vault(g, M.honeyDS, 0.04, 0.07, 0.028, IX - 0.02, yI + 0.012, IZ + 0.02, 0.4, 2); // chapel inside
+  for (let k = 0; k < 12; k++) { const a = k / 12 * 6.283; const bxx = IX + Math.cos(a) * 0.215, bzz = IZ + Math.sin(a) * 0.2; if (Math.hypot(bxx, bzz) < 0.9) put(g, new THREE.DodecahedronGeometry(0.016 + (k % 3) * 0.007, 0), M.karstFlat, bxx, 0.0, bzz); }
   // ---- necropolis: a rock scarp with cut tomb fronts and a warrior relief, and the avenue of sarcophagi below it
   const cpos = [], cuv = [], cidx = [], NX = 60, X0 = -0.52, X1 = 0.42;
-  for (let j = 0; j <= 4; j++) for (let i = 0; i <= NX; i++) { const x = X0 + i * (X1 - X0) / NX, yb = Y(x, scarp(x) + 0.05) - 0.012, yt = Y(x, scarp(x) - 0.03) + 0.004; cpos.push(x, yb + (yt - yb) * j / 4, scarp(x) + 0.018 + (fbm(x * 9, j * 2) - 0.5) * 0.02 - j * 0.005); cuv.push(x * 1.3, j * 0.04); }
+  for (let j = 0; j <= 4; j++) for (let i = 0; i <= NX; i++) { const x = X0 + i * (X1 - X0) / NX, yb = Y(x, scarp(x) + 0.05) - 0.012, yt = yb + (Y(x, scarp(x) - 0.03) + 0.004 - yb) * Math.min(1, i / 8, (NX - i) / 8); cpos.push(x, yb + (yt - yb) * j / 4, scarp(x) + 0.018 + (fbm(x * 9, j * 2) - 0.5) * 0.036 - j * 0.005 - (1 - Math.min(1, i / 8, (NX - i) / 8)) * 0.02); cuv.push(x * 1.3, j * 0.04); }
   for (let j = 0; j < 4; j++) for (let i = 0; i < NX; i++) { const a = j * (NX + 1) + i; cidx.push(a, a + 1, a + NX + 1, a + 1, a + NX + 2, a + NX + 1); }
   const cgeo = new THREE.BufferGeometry(); cgeo.setAttribute('position', new THREE.Float32BufferAttribute(cpos, 3)); cgeo.setAttribute('uv', new THREE.Float32BufferAttribute(cuv, 2)); cgeo.setIndex(cidx); cgeo.computeVertexNormals(); put(g, cgeo, M.karst);
   [[-0.4, 0.024, 0.032], [-0.29, 0.03, 0.04], [-0.2, 0.02, 0.03], [0.02, 0.034, 0.044], [0.12, 0.022, 0.032], [0.27, 0.028, 0.038]].forEach(([x, w, hh], k) => { // rock-cut chamber mouths, each different
@@ -78,6 +79,8 @@ export default function korykos(g) {
     const f = put(g, new THREE.CapsuleGeometry(0.008, 0.026, 3, 8), M.relief, x, y + 0.024, z + 0.004); f.scale.z = 0.5; put(g, new THREE.SphereGeometry(0.007, 8, 6), M.relief, x, y + 0.05, z + 0.004).scale.z = 0.6;
     const arm = B(g, M.relief, 0.004, 0.02, 0.003, x + 0.011, y + 0.038, z + 0.004); arm.rotation.z = -0.7; const sword = B(g, M.relief, 0.003, 0.026, 0.002, x + 0.02, y + 0.05, z + 0.004); sword.rotation.z = 0.3; }
   for (let k = 0; k < 12; k++) { const x = X0 + 0.04 + k * 0.078, z = scarp(x) + 0.05 + (k % 3) * 0.012; boulder(g, x, Y(x, z) + 0.004, z, 0.014 + (k % 4) * 0.006, k, M.karstFlat); } // talus
+  for (const x of [X0 + 0.01, X1 - 0.01]) boulder(g, x, Y(x, scarp(x) + 0.03) + 0.015, scarp(x) + 0.02, 0.045, x * 9, M.karstFlat); // a block closing each end
+  for (let k = 0; k < 7; k++) { const x = X0 + 0.1 + k * 0.118, bl = boulder(g, x, Y(x, scarp(x) + 0.05) + 0.045 + (k % 3) * 0.012, scarp(x) + 0.014, 0.03, k + 30, M.karstFlat); bl.scale.y *= 0.35; bl.scale.x *= 1.6; } // bedding ledges standing out of the face
   let n = 0;
   for (let k = 0; k < 15; k++) for (const s of [-1, 1]) {
     const x = -0.82 + k * 0.118 + (s > 0 ? 0.05 : 0), z = -0.14 + 0.05 * Math.sin(x * 3) + s * (0.06 + (k % 3) * 0.012); n++;

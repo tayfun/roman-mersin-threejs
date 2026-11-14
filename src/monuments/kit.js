@@ -97,7 +97,7 @@ export const T = {
       const x = r() * s, y0 = r() * s * 0.6, len = 90 + r() * 300, w = 3 + r() * 10, rust = r() > 0.3, al = 0.1 + r() * 0.12, wob = (r() - 0.5) * 10;
       for (let pass = 0; pass < 3; pass++) {
         const ww = w * (1 - pass * 0.3), gr = g.createLinearGradient(0, y0, 0, y0 + len);
-        gr.addColorStop(0, rust ? `rgba(172,86,46,${al})` : `rgba(44,40,36,${al * 0.8})`); gr.addColorStop(1, 'rgba(0,0,0,0)');
+        const cs = rust ? `rgba(172,86,46,${al * 0.85})` : `rgba(44,40,36,${al * 0.7})`; gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(0.08, cs); gr.addColorStop(1, 'rgba(0,0,0,0)');
         g.fillStyle = gr; g.beginPath(); g.moveTo(x - ww, y0); g.lineTo(x + ww, y0); g.quadraticCurveTo(x + ww * 0.5 + wob, y0 + len * 0.5, x + wob, y0 + len); g.quadraticCurveTo(x - ww * 0.5 + wob, y0 + len * 0.5, x - ww, y0); g.fill();
       }
     }
@@ -206,7 +206,7 @@ export const M = {
   get weathered() { return mat('weathered', () => std({ map: T.marble(), color: 0xdccfb4, roughness: 0.8 })); },
   get karst() { return mat('karst', () => std({ map: T.karst(), bumpMap: T.karst(), bumpScale: 0.8, side: THREE.DoubleSide })); },
   get relief() { return mat('relief', () => std({ color: 0xd8cdb8, roughness: 0.9 })); },
-  get karstFlat() { return mat('karstFlat', () => std({ map: T.karst(), roughness: 0.9 })); },
+  get karstFlat() { return mat('karstFlat', () => std({ map: T.ground(), color: 0xc6bdae, roughness: 0.9, flatShading: true })); }, // plain pale limestone: boulders, dressed margins
   get karstDark() { return mat('karstDark', () => std({ map: T.karst(), color: 0x6d6258 })); },
   get brick() { return mat('brick', () => stone('brick')); },
   get brickDS() { return mat('brickDS', () => stone('brick', { side: THREE.DoubleSide })); },
@@ -558,16 +558,18 @@ export function pitSkin(g, e, cx, cz, yTop, yBot, o = {}) {
     let lo = 0, hi = rmax; for (let it = 0; it < 22; it++) { const m = (lo + hi) / 2; if (e(cx + ca * m, cz + sa * m) < level) lo = m; else hi = m; }
     const R = lo, x0 = cx + ca * R, z0 = cz + sa * R, top = yTop(cx + ca * (R + cap + 0.014), cz + sa * (R + cap + 0.014)) + 0.004; // rim height, sampled on the plateau just beyond the cap
     if (px !== null) arc += Math.hypot(x0 - px, z0 - pz); px = x0; pz = z0;
+    // cap: a flat band at rim height from beyond the terrain's drop in to the head of the wall
+    pos.push(cx + ca * (R + cap), top + 0.002, cz + sa * (R + cap)); uv.push(arc / TS * 0.42, ((top - yBot) + cap) / TS * 0.42);
     for (let j = 0; j < rows; j++) {
       const t = j / (rows - 1), tier = Math.floor((j + 1) / 2); // pairs of rows make a vertical face then a ledge
       let inset = 0; for (let q = 1; q <= tier; q++) inset += step * 2 * Math.max(0, fbm(a * 2.3 + seed + q * 5.1, q * 1.3) - 0.15); // ledges of uneven width that pinch out
-      inset += -overhang * (1 - t) * 2 + (fbm(a * 5 + seed, t * 2.5) - 0.5) * amp * 2 + Math.sin(a * 9 + seed) * amp * 0.5;
-      if (j === 0) inset = -cap; // lip cap laid over the rim
-      const r = Math.max(0.01, R - inset), yy = j === 0 ? top + 0.002 : top + (yBot - top) * (t + (j % 2 ? (fbm(a * 3 + j, seed) - 0.5) * 0.5 / rows : 0));
+      inset += -overhang * (1 - t) * 2 + (fbm(a * 5 + seed, t * 2.5) - 0.5) * amp * 2 * Math.min(1, j) + Math.sin(a * 9 + seed) * amp * 0.5 * Math.min(1, j);
+      const r = Math.max(0.01, R - inset), yy = top + (yBot - top) * (t + (j % 2 ? (fbm(a * 3 + j, seed) - 0.5) * 0.5 / rows : 0));
       pos.push(cx + ca * r, yy, cz + sa * r); uv.push(arc / TS * 0.42, (1 - t) * (top - yBot) / TS * 0.42);
     }
   }
-  for (let k = 0; k < seg; k++) { if (mask && !mask((k + 0.5) / seg * Math.PI * 2)) continue; for (let j = 0; j < rows - 1; j++) { const a0 = k * rows + j, b0 = a0 + rows; idx.push(a0, a0 + 1, b0, b0, a0 + 1, b0 + 1); } }
+  const rows2 = rows + 1;
+  for (let k = 0; k < seg; k++) { if (mask && !mask((k + 0.5) / seg * Math.PI * 2)) continue; for (let j = 0; j < rows2 - 1; j++) { const a0 = k * rows2 + j, b0 = a0 + rows2; idx.push(a0, a0 + 1, b0, b0, a0 + 1, b0 + 1); } }
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
   geo.setIndex(idx); geo.computeVertexNormals();
