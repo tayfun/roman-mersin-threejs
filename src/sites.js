@@ -102,6 +102,7 @@ export const SITES = [
   {
     id: 'cennet',
     model: 'cennet',
+    view: { polar: 44 }, // look down into the sinkholes
     name: 'Corycian Cave',
     modern: 'Cennet & Cehennem ("Heaven & Hell")',
     lat: 36.4525, lon: 34.1056,
@@ -123,6 +124,7 @@ export const SITES = [
   {
     id: 'adamkayalar',
     model: 'adamkayalar',
+    view: { polar: 68, az: 0.25 }, // face the carved cliff
     name: 'Adamkayalar',
     modern: '"Man-rocks" · Şeytan Deresi canyon',
     lat: 36.5250, lon: 34.0542,
@@ -186,6 +188,7 @@ export const SITES = [
   {
     id: 'kanlidivane',
     model: 'kanlidivane',
+    view: { polar: 46 },
     name: 'Canytelis',
     modern: 'Kanlıdivane',
     lat: 36.5256, lon: 34.1792,

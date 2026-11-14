@@ -5,7 +5,7 @@ import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
 import { WORLD, lonLatToXZ, metresToY } from './geo.js';
 import { loadHeights, makeSampler, coastDistance, buildTerrain, buildSea } from './terrain.js';
-import { buildMonument, galley } from './monuments.js';
+import { buildMonument, galley, BASE_DEPTH } from './monuments/index.js';
 import { SITES, ROADS, SOURCES } from './sites.js';
 import NARRATION from './narration.json';
 import RIVERS from './rivers.json';
@@ -120,7 +120,7 @@ function buildSites() {
     const root = new THREE.Group();
     root.position.set(x, y, z);
     const model = buildMonument(s.model);
-    model.position.y = 0.42;
+    model.position.y = BASE_DEPTH;
     root.add(model);
     // beacon
     const beam = new THREE.Mesh(
@@ -129,10 +129,10 @@ function buildSites() {
     );
     beam.position.y = 3.6;
     const ring = new THREE.Mesh(
-      new THREE.RingGeometry(1.15, 1.3, 48),
+      new THREE.RingGeometry(1.2, 1.26, 64),
       new THREE.MeshBasicMaterial({ color: 0xffd98a, transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false, depthTest: false, fog: false }),
     );
-    ring.renderOrder = 1; ring.rotation.x = -Math.PI / 2; ring.position.y = 0.24;
+    ring.renderOrder = 1; ring.rotation.x = -Math.PI / 2; ring.position.y = 0.03;
     const lamp = new THREE.PointLight(0xffb060, 0, 9, 1.6);
     lamp.position.y = 1.4;
     const hit = new THREE.Mesh(new THREE.CylinderGeometry(1.25, 1.25, 2.4, 12), new THREE.MeshBasicMaterial({ visible: false }));
@@ -229,7 +229,7 @@ function buildShips() {
     { c: [82, 48], rx: 14, rz: 7, speed: 0.07, phase: 4, sail: 0x7a2c8f },
   ];
   for (const r of routes) {
-    const s = galley(r.sail);
+    const s = galley(new THREE.MeshStandardMaterial({ color: r.sail, side: THREE.DoubleSide, roughness: 0.9 }));
     s.scale.setScalar(2.4);
     s.traverse((o) => { if (o.isMesh) o.castShadow = false; });
     scene.add(s);
@@ -307,7 +307,7 @@ const sunDir = new THREE.Vector3();
 function applyLighting() {
   const t = state.dusk;
   const mix = (k, out) => out.copy(L[k][0]).lerp(L[k][1], t);
-  const elev = THREE.MathUtils.lerp(0.9, 0.32, t), az = THREE.MathUtils.lerp(-2.2, -2.75, t);
+  const elev = THREE.MathUtils.lerp(0.85, 0.32, t), az = THREE.MathUtils.lerp(-0.95, -1.35, t); // from the south-west, so the seaward faces are lit
   sunDir.set(Math.cos(elev) * Math.sin(az), Math.sin(elev), Math.cos(elev) * Math.cos(az)).normalize();
   mix('sun', sun.color); sun.intensity = THREE.MathUtils.lerp(2.5, 2.9, t);
   mix('hemiSky', hemi.color); mix('hemiGround', hemi.groundColor); hemi.intensity = THREE.MathUtils.lerp(0.85, 0.7, t);
@@ -350,11 +350,12 @@ function select(i, { instant = false, fromTour = false } = {}) {
   history.replaceState(null, '', '#' + o.site.id);
   // approach from the sea side (south), keeping roughly the current bearing
   const cur = Math.atan2(camera.position.x - controls.target.x, camera.position.z - controls.target.z);
-  const az = THREE.MathUtils.clamp(cur, -0.9, 0.9);
-  const dist = 6.2, polar = THREE.MathUtils.degToRad(62);
+  const view = o.site.view || {};
+  const az = view.az !== undefined ? view.az : THREE.MathUtils.clamp(cur, -0.7, 0.7);
+  const dist = view.dist || 4.6, polar = THREE.MathUtils.degToRad(view.polar || 60);
   const narrow = innerWidth < 760;
-  const target = o.pos.clone(); target.y += 0.75;
-  if (narrow) target.y -= 1.1; // leave room for the bottom sheet
+  const target = o.pos.clone(); target.y += 0.7;
+  if (narrow) target.y -= 0.9; // leave room for the bottom sheet
   const pos = target.clone().add(new THREE.Vector3(Math.sin(az) * Math.sin(polar), Math.cos(polar), Math.cos(az) * Math.sin(polar)).multiplyScalar(dist));
   sound.play('whoosh', 0.35);
   flyTo(target, pos, instant ? 0.01 : 2.6, () => { controls.autoRotate = !reduceMotion; sound.play('chime', 0.3); });
@@ -365,6 +366,7 @@ function deselect() {
   if (state.tour) stopTour();
   state.selected = -1;
   $('#panel').hidden = true; document.body.classList.remove('panel-open');
+  applyViewOffset();
   for (const b of document.querySelectorAll('#sitelist button')) b.classList.remove('active');
   history.replaceState(null, '', location.pathname + location.search);
   controls.autoRotate = false;
@@ -435,6 +437,7 @@ function renderPanel(i) {
   const panel = $('#panel');
   panel.hidden = false; panel.style.animation = 'none'; void panel.offsetWidth; panel.style.animation = '';
   document.body.classList.add('panel-open');
+  applyViewOffset();
   document.querySelectorAll('#sitelist button').forEach((b, k) => b.classList.toggle('active', k === i));
 }
 
@@ -520,11 +523,18 @@ function buildUI() {
   addEventListener('resize', resize);
 }
 
+// with the side panel open, shift the projection so the selected diorama sits in the free space left of it
+function applyViewOffset() {
+  const w = innerWidth, h = innerHeight, open = !$('#panel').hidden && w > 760;
+  if (open) camera.setViewOffset(w, h, Math.min(213, w * 0.17), 0, w, h); else camera.clearViewOffset();
+  camera.updateProjectionMatrix();
+}
+
 function resize() {
   const w = innerWidth, h = innerHeight;
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
-  camera.updateProjectionMatrix();
+  applyViewOffset();
   controls.maxDistance = Math.max(450, overviewPose().pos.distanceTo(OVERVIEW.target) * 1.15);
   for (const o of siteObjs) o.w = 0;
   for (const m of [...roadMats, riverMat]) m && m.resolution.set(w, h);
@@ -567,7 +577,7 @@ function frame() {
 
   // sun + shadow frustum follow the view
   const dist = camera.position.distanceTo(controls.target);
-  const sh = THREE.MathUtils.clamp(dist * 0.6, 8, 90);
+  const sh = THREE.MathUtils.clamp(dist * 0.6, 3, 90);
   sun.target.position.copy(controls.target);
   sun.position.copy(controls.target).addScaledVector(sunDir, 300);
   const sc = sun.shadow.camera;
@@ -590,7 +600,7 @@ function frame() {
     const i = siteObjs.indexOf(o);
     const d = camera.position.distanceTo(o.pos);
     const active = i === state.selected, hov = i === state.hovered;
-    const target = THREE.MathUtils.clamp(d / 40, 0.8, 2.3) * (hov && !active ? 1.12 : 1);
+    const target = Math.max(active ? 1.15 : 0, THREE.MathUtils.clamp(d / 40, 0.8, 2.3)) * (hov && !active ? 1.12 : 1);
     o.scale += (target - o.scale) * Math.min(1, dt * 8);
     o.root.scale.setScalar(o.scale);
     o.beam.material.opacity = (0.35 + 0.2 * Math.sin(t * 2 + i)) * THREE.MathUtils.smoothstep(d, 6, 45);
@@ -601,7 +611,7 @@ function frame() {
   }
   for (const i of order) {
     const o = siteObjs[i];
-    v.copy(o.pos); v.y += (i === state.selected ? 2.0 : 2.5) * o.scale;
+    v.copy(o.pos); v.y += (i === state.selected ? 1.75 : 2.3) * o.scale;
     v.project(camera);
     const behind = v.z > 1;
     const x = (v.x * 0.5 + 0.5) * W, y = (-v.y * 0.5 + 0.5) * H;
