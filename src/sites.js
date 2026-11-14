@@ -231,7 +231,7 @@ export const SITES = [
     name: 'Tarsus',
     modern: 'Tarsus',
     lat: 36.9167, lon: 34.8900,
-    tagline: 'Capital of Roman Cilicia: Cleopatra sailed in, St Paul was born here, an emperor is buried here.',
+    tagline: 'Capital of Roman Cilicia: Cleopatra sailed in, St Paul was born here, an emperor was buried here.',
     era: ['Roman capital from 67 BC', 'Antony & Cleopatra 41 BC', 'Julian buried AD 363'],
     body: [
       'Pompey made Tarsus the capital of the province of Cilicia in 67 BC. In 41 BC Cleopatra sailed up the Cydnus river to meet Mark Antony here. Paul the Apostle called himself "a citizen of no mean city" — this one. The emperor Julian was buried outside its walls in 363.',
