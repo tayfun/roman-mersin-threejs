@@ -16,6 +16,7 @@ export default function soli(g) {
       const t = tell(x, z); // Soli Höyük: a steep-sided, flat-topped mound
       if (t < 1.2) y = Math.max(y, 0.04 + 0.17 * (1 - sm(0.62, 1.12, t)) + fbm(x * 9, z * 9) * 0.006);
       if (inTrench(x, z)) y -= 0.032; // real pits
+      if (Math.abs(x) < 0.24 && z < 0.5) y = Math.min(y, 0.034); // keep the ground under the street's paving
       if (t < 1.1 && x > -0.44 && Math.abs(z - 0.1) < 0.035) y = Math.min(y, 0.06 + Math.floor((-0.36 - x) / 0.03 + 4) * 0.028); // a stepped sounding cut down the east flank
       return y;
     },

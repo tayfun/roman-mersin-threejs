@@ -12,6 +12,7 @@ export default function adamkayalar(g) {
     [0.165, 0.175, 0.13, 0.12, 'family', 2], [0.33, 0.1, 0.095, 0.12, 'men', 0], [0.49, 0.18, 0.115, 0.12, 'ibex', 0], [0.655, 0.115, 0.095, 0.12, 'men', 2]];
   const DEPTH = 0.028;
   const dent = (x, y) => { let d = 0; for (const [nx, ny, w, h] of niches) d = Math.max(d, sm(w / 2 + 0.014, w / 2 + 0.002, Math.abs(x - nx)) * sm(ny - 0.014, ny - 0.002, y) * sm(ny + h + 0.014, ny + h + 0.002, y)); return d; };
+  const dentNear = (x, y) => { let d = 0; for (const [nx, ny, w, h] of niches) d = Math.max(d, sm(w / 2 + 0.04, w / 2 + 0.008, Math.abs(x - nx)) * sm(ny - 0.04, ny - 0.008, y) * sm(ny + h + 0.05, ny + h + 0.01, y)); return d; };
   const Y = base(g, {
     dry: 0.7,
     h: (x, z) => {
@@ -32,7 +33,7 @@ export default function adamkayalar(g) {
   // ---- the cliff: one continuous sheet following the bend of the gorge. The niches are real recesses in it,
   // a natural rock terrace bulges out below them, and fissures break the face between the groups.
   const nx = 220, ny = 60, y0 = -0.31, pos = [], uv = [], idx = [];
-  const fissures = [-0.82, -0.25, 0.085, 0.41, 0.8];
+  const fissures = [-0.82, -0.29, 0.085, 0.41, 0.8];
   for (let j = 0; j <= ny; j++) for (let i = 0; i <= nx; i++) {
     let x = lerp(-0.985, 0.985, i / nx); const top = NORTH(x) + 0.012, y = lerp(y0, top, j / ny), dn = dent(x, y);
     const band = sm(0.04, 0.08, y) * (1 - sm(0.3, 0.36, y)), amp = lerp(0.03, 0.01, band);
@@ -41,7 +42,9 @@ export default function adamkayalar(g) {
     z += sm(-0.1, -0.3, y) * 0.05; // foot of the cliff
     z += 0.05 * sm(0.0, 0.05, y) * sm(0.085, 0.065, y) * (0.6 + fbm(x * 7, 9) * 0.8); // the rock terrace people stand on
     for (const fx of fissures) z -= 0.035 * Math.exp(-((x - fx - Math.sin(y * 9) * 0.01) ** 2) / 0.00025) * (1 - dn);
+    z = lerp(z, mid(x) + FACE, sm(0.0, 0.25, dentNear(x, y))); // the rock is dressed flat round each niche
     z = lerp(z, mid(x) + FACE - DEPTH, dn);
+    z -= sm(0.9, 0.985, Math.abs(x)) * 0.13; // both ends turn back into the hillside
     const r = Math.hypot(x, z); if (r > 0.992) { x *= 0.992 / r; z *= 0.992 / r; }
     pos.push(x, y, z); uv.push(x * 1.15, y * 1.15);
   }
@@ -54,7 +57,7 @@ export default function adamkayalar(g) {
   const part = (grp, geo, x, y, sx, sy, rz = 0) => { const m = put(grp, geo, R, x, y, 0.006); m.scale.set(sx, sy, sx * 0.5); m.rotation.z = rz; return m; };
   const feet = (grp, x, y, h) => { for (const s of [-1, 1]) B(grp, R, h * 0.07, h * 0.035, 0.008, x + s * h * 0.055, y, 0.006); };
   const man = (grp, x, h, y = 0) => { // a himation wrapped across the body, one arm in its sling
-    feet(grp, x, y, h); part(grp, CYL, x, y + h * 0.42, h * 0.13, h * 0.74); B(grp, R, h * 0.3, h * 0.07, 0.006, x, y + h * 0.75, 0.009); // squared shoulders
+    feet(grp, x, y, h); part(grp, CYL, x, y + h * 0.42, h * 0.13, h * 0.74); part(grp, SPH, x, y + h * 0.75, h * 0.125, h * 0.045); // shoulders
     part(grp, SPH, x, y + h * 0.9, h * 0.078, h * 0.09);
     const fold = B(grp, R, h * 0.045, h * 0.52, 0.004, x - h * 0.01, y + h * 0.32, 0.012); fold.rotation.z = 0.5; B(grp, R, h * 0.25, h * 0.02, 0.004, x, y + h * 0.1, 0.012); // diagonal fold, hem
   };
@@ -87,13 +90,13 @@ export default function adamkayalar(g) {
   niches.forEach(([x, y, w, h, kind, top]) => {
     const n = new THREE.Group(); n.position.set(x, y, mid(x) + FACE - DEPTH + 0.004); n.rotation.y = tilt(x); g.add(n);
     B(n, M.karstDark, w + 0.006, h + 0.006, 0.003, 0, -0.003, 0); // shadowed back of the recess
-    const lip = 0.006, out = DEPTH - 0.002; // a thin dressed margin at the rock surface
-    for (const s of [-1, 1]) B(n, M.karstFlat, lip, h + lip, 0.006, s * (w / 2 + lip / 2), 0, out);
-    B(n, M.karstFlat, w + lip * 2, lip, 0.006, 0, -lip, out); B(n, M.karstFlat, w + lip * 2, lip, 0.006, 0, h, out);
+    const lip = 0.006, out = DEPTH - 0.006; // a thin dressed margin, flush with the rock surface
+    for (const s of [-1, 1]) B(n, M.karstFlat, lip, h + lip, 0.003, s * (w / 2 + lip / 2), 0, out);
+    B(n, M.karstFlat, w + lip * 2, lip, 0.003, 0, -lip, out); B(n, M.karstFlat, w + lip * 2, lip, 0.003, 0, h, out);
     if (top === 1) { const sh = new THREE.Shape(); sh.moveTo(-w / 2 - 0.012, 0); sh.lineTo(w / 2 + 0.012, 0); sh.lineTo(0, 0.03); sh.closePath(); put(n, new THREE.ExtrudeGeometry(sh, { depth: 0.006, bevelEnabled: false }), M.karstFlat, 0, h + lip, out - 0.003); }
     if (top === 2) { const arc = put(n, new THREE.TorusGeometry(w / 2, 0.005, 5, 14, Math.PI), M.karstFlat, 0, h, out); arc.scale.y = 0.3; }
     if (kind === 'banquet') banquet(n, w, false);
-    else if (kind === 'banquet2') { banquet(n, w, true); eagle(n, -w / 2 - 0.004, h + lip + 0.002, 1); eagle(n, w / 2 + 0.004, h + lip + 0.002, -1); }
+    else if (kind === 'banquet2') { banquet(n, w, true); for (const s of [-1, 1]) { const eg = new THREE.Group(); eg.position.set(s * (w / 2 + 0.002), h + lip + 0.004, out); eg.scale.setScalar(1.6); n.add(eg); eagle(eg, 0, 0, -s); } }
     else if (kind === 'soldier') soldier(n, -0.005, h * 0.8);
     else if (kind === 'couple') { man(n, -0.026, h * 0.86); woman(n, 0.027, h * 0.76); }
     else if (kind === 'family') { man(n, -0.04, h * 0.86); woman(n, 0.006, h * 0.76); child(n, 0.045, h * 0.44); }

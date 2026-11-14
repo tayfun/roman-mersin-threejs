@@ -42,7 +42,7 @@ export default function cennet(g) {
   // ---- chapel of the Virgin (built by Paulus, 5th c.) on the floor before the cave: roofless ashlar walls, apse to the east
   const cx = mx - 0.01, cz = mz - 0.24, cy = Y(cx, cz) - 0.008, cg = new THREE.Group(); cg.position.set(cx, cy, cz); cg.rotation.y = 0.1; g.add(cg);
   B(cg, M.limestone, 0.2, 0.07, 0.016, 0, 0, -0.065); B(cg, M.limestone, 0.2, 0.085, 0.016, 0, 0, 0.065); B(cg, M.limestone, 0.016, 0.1, 0.146, -0.1, 0, 0);
-  apse(cg, M.limestone, 0.058, 0.09, 0.1, 0, 0, -Math.PI / 2); const conch = put(cg, new THREE.SphereGeometry(0.058, 12, 6, 0, Math.PI, 0, Math.PI / 2), M.limestoneDS, 0.1, 0.09, 0);
+  apse(cg, M.limestone, 0.058, 0.09, 0.1, 0, 0, -Math.PI / 2);
   B(cg, M.dark, 0.004, 0.06, 0.03, -0.109, 0, 0); for (const sd of [-1, 1]) for (const xx of [-0.055, 0.0, 0.055]) { B(cg, M.dark, 0.016, 0.028, 0.004, xx, 0.032, sd * 0.074); } // three arched windows a side
   B(cg, M.paving, 0.19, 0.004, 0.12, 0, 0.001, 0);
   // ---- the stair: switchbacks down the northern talus, then a path across the floor to the chapel door

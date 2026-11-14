@@ -76,7 +76,7 @@ export const T = {
   limestone: () => tex('lime', () => ashlar(0xd9c79f, '#8f7f62', 8, 0.1, 3)),
   honey: () => tex('honey', () => ashlar(0xcda873, '#7d6744', 8, 0.12, 5)),
   grey: () => tex('grey', () => ashlar(0xa9a294, '#6a655c', 9, 0.1, 7)),
-  rubble: () => tex('rubble', () => ashlar(0xa89d88, '#6a6153', 30, 0.2, 9)),
+  rubble: () => tex('rubble', () => ashlar(0xa89d88, '#857a69', 44, 0.16, 9)),
   cobble: () => tex('cobble', () => ashlar(0xb3a58c, '#6b5f4c', 18, 0.14, 15)),
   brick: () => tex('brick', () => canvasTex(256, (g, s) => { // mortared rubble with red brick lacing courses
     g.drawImage(T.rubble().image, 0, 0);
@@ -93,9 +93,13 @@ export const T = {
       for (let x = 0; x <= s; x += 16) g.lineTo(x, y0 + Math.sin(x * 0.02 + i) * 5 + Math.sin(x * 0.07 + i * 3) * 2);
       g.stroke();
     }
-    for (let i = 0; i < 110; i++) { // runoff: soft-edged, tapering downward
-      const x = r() * s, y0 = r() * s * 0.7, len = 60 + r() * 260, w = 2 + r() * 9, rust = r() > 0.3;
-      for (let k = 0; k < 14; k++) { const t = k / 14; g.fillStyle = rust ? `rgba(172,84,44,${(1 - t) * (0.16 + r() * 0.12)})` : `rgba(44,40,36,${(1 - t) * (0.1 + r() * 0.08)})`; g.fillRect(x - w * (1 - t * 0.6) + Math.sin(k) * 0.6, y0 + t * len, w * 2 * (1 - t * 0.6), len / 14 + 1); }
+    for (let i = 0; i < 64; i++) { // runoff: each streak one tapering shape fading downward, drawn in soft overlaid passes
+      const x = r() * s, y0 = r() * s * 0.6, len = 90 + r() * 300, w = 3 + r() * 10, rust = r() > 0.3, al = 0.1 + r() * 0.12, wob = (r() - 0.5) * 10;
+      for (let pass = 0; pass < 3; pass++) {
+        const ww = w * (1 - pass * 0.3), gr = g.createLinearGradient(0, y0, 0, y0 + len);
+        gr.addColorStop(0, rust ? `rgba(172,86,46,${al})` : `rgba(44,40,36,${al * 0.8})`); gr.addColorStop(1, 'rgba(0,0,0,0)');
+        g.fillStyle = gr; g.beginPath(); g.moveTo(x - ww, y0); g.lineTo(x + ww, y0); g.quadraticCurveTo(x + ww * 0.5 + wob, y0 + len * 0.5, x + wob, y0 + len); g.quadraticCurveTo(x - ww * 0.5 + wob, y0 + len * 0.5, x - ww, y0); g.fill();
+      }
     }
     for (let i = 0; i < 9; i++) { g.strokeStyle = `rgba(40,34,28,${0.25 + r() * 0.2})`; g.lineWidth = 0.8 + r(); g.beginPath(); let x = r() * s, y = r() * s; g.moveTo(x, y); for (let k = 0; k < 7; k++) { x += (r() - 0.5) * 14; y += 12 + r() * 22; g.lineTo(x, y); } g.stroke(); }
     for (let i = 0; i < 9; i++) { const x = r() * s, y = r() * s, rad = 20 + r() * 50, gr = g.createRadialGradient(x, y, 0, x, y, rad); gr.addColorStop(0, `rgba(176,104,62,${0.1 + r() * 0.14})`); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(x - rad, y - rad, rad * 2, rad * 2); }
@@ -350,8 +354,15 @@ export function vault(g, material, w, len, wallH, x = 0, y = 0, z = 0, ry = 0, e
   const geo = new THREE.CylinderGeometry(w / 2, w / 2, len, 14, 1, true, -Math.PI / 2, Math.PI);
   const uv = geo.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * w * 1.57 / TS, uv.getY(i) * len / TS);
   const roof = put(grp, geo, material, 0, wallH, 0); roof.rotation.x = -Math.PI / 2;
-  if (ends) archWall(grp, material, w, wallH + w / 2, t, [{ x: 0, w: w * 0.4, h: wallH * 0.8 }], 0, 0, len / 2 - t / 2); // front, with a door
-  if (ends > 1) archWall(grp, material, w, wallH + w / 2, t, [], 0, 0, -len / 2 + t / 2);
+  const end = (z, door) => { // end wall rising to a round head under the barrel
+    const sh = new THREE.Shape(); sh.moveTo(-w / 2, 0); sh.lineTo(w / 2, 0); sh.lineTo(w / 2, wallH); sh.absarc(0, wallH, w / 2, 0, Math.PI, false); sh.lineTo(-w / 2, 0);
+    if (door) { const p = new THREE.Path(), r = w * 0.2, hh = wallH * 0.8; p.moveTo(-r, 0); p.lineTo(-r, hh - r); p.absarc(0, hh - r, r, Math.PI, 0, true); p.lineTo(r, 0); p.closePath(); sh.holes.push(p); }
+    const eg = new THREE.ExtrudeGeometry(sh, { depth: t, bevelEnabled: false, curveSegments: 10 }); eg.translate(0, 0, -t / 2);
+    const eu = eg.attributes.uv; for (let i = 0; i < eu.count; i++) eu.setXY(i, eu.getX(i) / TS, eu.getY(i) / TS);
+    put(grp, eg, material, 0, 0, z);
+  };
+  if (ends) end(len / 2 - t / 2, true); // front, with a door
+  if (ends > 1) end(-len / 2 + t / 2, false);
   return grp;
 }
 // theatre seating: stepped lathe + radial stairways. Opens toward +z.
@@ -496,7 +507,7 @@ export function house(g, x, z, y, w, d, h, ry = 0, material = M.plaster) {
 }
 // fortification: wall along a polyline with towers at the vertices and a crenellated top
 export function curtain(g, material, pts, h, t = 0.025, o = {}) {
-  const { closed = true, tower = 'square', tr = 0.035, th = h * 1.35, Y = () => 0, skip = [] } = o;
+  const { closed = true, tower = 'square', tr = 0.035, th = h * 1.35, Y = () => 0, skip = [], merlons = true } = o;
   const n = pts.length;
   for (let i = 0; i < (closed ? n : n - 1); i++) {
     const [x1, z1] = pts[i], [x2, z2] = pts[(i + 1) % n];
@@ -504,7 +515,8 @@ export function curtain(g, material, pts, h, t = 0.025, o = {}) {
       const len = Math.hypot(x2 - x1, z2 - z1), ry = -Math.atan2(z2 - z1, x2 - x1), cx = (x1 + x2) / 2, cz = (z1 + z2) / 2, y = Math.min(Y(x1, z1), Y(x2, z2), Y(cx, cz)) - 0.01;
       B(g, material, len, h, t, cx, y, cz, ry);
       const m = Math.max(2, Math.round(len / 0.017));
-      for (let k = 0; k < m; k += 2) { const f = (k + 0.5) / m - 0.5; B(g, material, len / m, 0.007, t, cx + Math.cos(-ry) * f * len, y + h, cz + Math.sin(-ry) * f * len, ry); }
+      if (merlons) for (let k = 0; k < m; k += 2) { const f = (k + 0.5) / m - 0.5; B(g, material, len / m, 0.007, t, cx + Math.cos(-ry) * f * len, y + h, cz + Math.sin(-ry) * f * len, ry); }
+      else for (let k = 0; k < 4; k++) { const f = (k + 0.5) / 4 - 0.5, hh = h * 0.4 * Math.max(0, fbm(cx * 9 + k * 1.7, cz * 9 + i) - 0.25); if (hh > 0.002) B(g, material, len / 4, hh, t, cx + Math.cos(-ry) * f * len, y + h, cz + Math.sin(-ry) * f * len, ry); } // a broken, uneven top
     }
   }
   if (tower) for (const [x, z] of pts) {
@@ -538,19 +550,19 @@ export function stork(g, x, y, z) { // nest and bird
 // rock skin lining a sinkhole: follows the contour e(x,z) = level around (cx,cz), stepped into ledges.
 // yTop(x,z) gives the rim height; the skin runs down to yBot. Overhang > 0 leans the top inward (Cehennem).
 export function pitSkin(g, e, cx, cz, yTop, yBot, o = {}) {
-  const { level = 0.97, rmax = 1.2, seg = 160, tiers = 4, step = 0.022, amp = 0.014, material = M.karst, overhang = 0, seed = 1, mask = null } = o;
+  const { level = 0.97, rmax = 1.2, seg = 160, tiers = 4, step = 0.022, amp = 0.014, material = M.karst, overhang = 0, seed = 1, mask = null, cap = 0.014 } = o;
   const pos = [], uv = [], idx = [], rows = tiers * 2 + 1;
   let arc = 0, px = null, pz = null;
   for (let k = 0; k <= seg; k++) {
     const a = (k % seg) / seg * Math.PI * 2, ca = Math.cos(a), sa = Math.sin(a);
     let lo = 0, hi = rmax; for (let it = 0; it < 22; it++) { const m = (lo + hi) / 2; if (e(cx + ca * m, cz + sa * m) < level) lo = m; else hi = m; }
-    const R = lo, x0 = cx + ca * R, z0 = cz + sa * R, top = yTop(x0, z0) + 0.004;
+    const R = lo, x0 = cx + ca * R, z0 = cz + sa * R, top = yTop(cx + ca * (R + cap + 0.014), cz + sa * (R + cap + 0.014)) + 0.004; // rim height, sampled on the plateau just beyond the cap
     if (px !== null) arc += Math.hypot(x0 - px, z0 - pz); px = x0; pz = z0;
     for (let j = 0; j < rows; j++) {
       const t = j / (rows - 1), tier = Math.floor((j + 1) / 2); // pairs of rows make a vertical face then a ledge
       let inset = 0; for (let q = 1; q <= tier; q++) inset += step * 2 * Math.max(0, fbm(a * 2.3 + seed + q * 5.1, q * 1.3) - 0.15); // ledges of uneven width that pinch out
       inset += -overhang * (1 - t) * 2 + (fbm(a * 5 + seed, t * 2.5) - 0.5) * amp * 2 + Math.sin(a * 9 + seed) * amp * 0.5;
-      if (j === 0) inset = -0.014; // lip cap laid over the rim
+      if (j === 0) inset = -cap; // lip cap laid over the rim
       const r = Math.max(0.01, R - inset), yy = j === 0 ? top + 0.002 : top + (yBot - top) * (t + (j % 2 ? (fbm(a * 3 + j, seed) - 0.5) * 0.5 / rows : 0));
       pos.push(cx + ca * r, yy, cz + sa * r); uv.push(arc / TS * 0.42, (1 - t) * (top - yBot) / TS * 0.42);
     }

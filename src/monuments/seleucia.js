@@ -64,8 +64,8 @@ export default function seleucia(g) {
   B(g, M.rubble, 0.1, 0.04, 0.05, CX + 0.02, Y(CX, CZ) - 0.005, CZ, -0.12); B(g, M.rubble, 0.05, 0.03, 0.07, CX - 0.1, Y(CX, CZ) - 0.005, CZ + 0.01, -0.12); // inner ruins
   // ---- rock-cut tombs: the scarp on the ridge's south flank, faced in grey limestone, with dark chamber mouths at two levels
   const face = (x) => { let lo = CZ + 0.1, hi = CZ + 0.4; for (let i = 0; i < 20; i++) { const m = (lo + hi) / 2; if (ridge(x, m) < 1.47) lo = m; else hi = m; } return lo; };
-  const fp = [], fu = [], fi = [], FN = 28, x0 = CX - 0.2, x1 = CX + 0.2;
-  for (let j = 0; j <= 3; j++) for (let i = 0; i <= FN; i++) { const x = x0 + (x1 - x0) * i / FN, z = face(x), yb = Y(x, z + 0.035) - 0.008, yt = yb + 0.07 + fbm(x * 9, 3) * 0.02; fp.push(x, yb + (yt - yb) * j / 3, z + 0.012 - j * 0.008 + (fbm(x * 12, j * 3) - 0.5) * 0.008); fu.push(x * 1.4, j * 0.05); }
+  const fp = [], fu = [], fi = [], FN = 28, x0 = CX - 0.17, x1 = CX + 0.17;
+  for (let j = 0; j <= 3; j++) for (let i = 0; i <= FN; i++) { const x = x0 + (x1 - x0) * i / FN, z = face(x), yb = Y(x, z + 0.035) - 0.008, yt = yb + (0.07 + fbm(x * 9, 3) * 0.02) * Math.min(1, i / 3, (FN - i) / 3); fp.push(x, yb + (yt - yb) * j / 3, z + 0.012 - j * 0.008 + (fbm(x * 12, j * 3) - 0.5) * 0.008); fu.push(x * 1.4, j * 0.05); }
   for (let j = 0; j < 3; j++) for (let i = 0; i < FN; i++) { const a = j * (FN + 1) + i; fi.push(a, a + 1, a + FN + 1, a + 1, a + FN + 2, a + FN + 1); }
   const fg = new THREE.BufferGeometry(); fg.setAttribute('position', new THREE.Float32BufferAttribute(fp, 3)); fg.setAttribute('uv', new THREE.Float32BufferAttribute(fu, 2)); fg.setIndex(fi); fg.computeVertexNormals(); put(g, fg, M.karst);
   for (let k = 0; k < 6; k++) {
@@ -96,8 +96,8 @@ export default function seleucia(g) {
   // ---- reeds on the banks; cypresses as framing; pines and scrub on the ridge's flanks (kept off the tombs)
   for (let k = 0; k < 16; k++) { const x = -0.9 + k * 0.118, z = rz(x) + (k % 2 ? 0.2 : -0.19); if (Math.abs(x - bx) > 0.08 && Math.hypot(x, z) < 0.93) tree(g, 'reed', x, z, 1.2, Y(x, z), k); }
   for (const [x, z] of [[0.86, 0.4], [-0.86, -0.3], [-0.78, -0.4], [0.9, -0.36]]) tree(g, 'cypress', x, z, 1.1, Y(x, z), x * 5);
-  scatter(g, ['olive', 'pine', 'shrub'], 12, [-0.95, -0.5, 0.95, 0.95], Y, 31, 0.75, 1.1, (x, z) => !(Math.abs(x - tx) < 0.5 && z > -0.02 && z < 0.72) && cist(x, z) > 1.7 && ridge(x, z) > 1.75 && Y(x, z) > 0.05 && Math.abs(x - 0.3) > 0.06 && !hs.some(([hx, hz]) => Math.hypot(x - hx, z - hz) < 0.09) && !(Math.abs(x - CX) < 0.26 && z > CZ));
-  scatter(g, ['pine', 'shrub', 'oak', 'shrub'], 16, [-0.92, -0.2, -0.1, 0.34], Y, 12, 0.6, 0.95, (x, z) => ridge(x, z) > 1.25 && ridge(x, z) < 1.8 && south(x, z) < 0.05 && cist(x, z) > 1.5);
+  scatter(g, ['olive', 'pine', 'shrub'], 12, [-0.95, -0.5, 0.95, 0.95], Y, 31, 0.75, 1.1, (x, z) => !(Math.abs(x - tx) < 0.5 && z > -0.02 && z < 0.72) && cist(x, z) > 2.8 && ridge(x, z) > 1.75 && Y(x, z) > 0.05 && Math.abs(x - 0.3) > 0.06 && !hs.some(([hx, hz]) => Math.hypot(x - hx, z - hz) < 0.09) && !(Math.abs(x - CX) < 0.26 && z > CZ));
+  scatter(g, ['pine', 'shrub', 'oak', 'shrub'], 16, [-0.92, -0.2, -0.1, 0.34], Y, 12, 0.6, 0.95, (x, z) => ridge(x, z) > 1.25 && ridge(x, z) < 1.8 && south(x, z) < 0.05 && cist(x, z) > 2.8);
   for (const [x, z, i] of [[0.3, 0.02, 3], [0.0, 0.56, 4], [0.07, 0.6, 1], [CI.x + 0.15, CI.z + 0.03, 5], [CX, CZ + 0.02, 3], [CX + 0.02, face(CX + 0.02) + 0.07, 0]]) person(g, x, z, Y(x, z) + 0.003, i);
   person(g, bx, bz - 0.05, 0.1, 0); person(g, bx, bz + 0.12, 0.096, 2);
 }

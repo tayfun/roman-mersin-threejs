@@ -13,21 +13,21 @@ export default function kanlidivane(g) {
     dry: 0.7,
     h: (x, z) => {
       const e = pit(x, z), gr = ground(x, z);
-      if (e >= 1.0) return gr;
-      const floor = -0.43 + fbm(x * 4, z * 4 + 5) * 0.04 + sm(0.15, 0.9, e) * 0.11; // a shallow bowl with talus at the foot of the walls // talus at the foot of the walls
-      return Math.min(gr, floor + sm(0.93, 1.0, e) * 0.56);
+      if (e >= 1.04) return gr;
+      const floor = -0.43 + fbm(x * 4, z * 4 + 5) * 0.04 + sm(0.15, 0.95, e) * 0.16; // a shallow bowl with talus at the foot of the walls // talus at the foot of the walls
+      return Math.min(gr, floor + sm(0.995, 1.04, e) * 0.56); // the terrain's own drop sits behind the rock skin
     },
     tint: (x, z, y, s, c, P) => {
       const e = pit(x, z);
       c.lerp(P.rock, 0.35 + (fbm(x * 7, z * 7) > 0.6 ? 0.4 : 0)); // bare grey karst showing through
-      if (e < 1.22 && e >= 1.0) c.copy(P.rock).lerp(P.sand, 0.3); // bare rock lip
-      if (e < 1.0) { c.copy(P.rock).lerp(P.red, 0.3); if (y < -0.3) c.copy(P.grass).multiplyScalar(0.55 + fbm(x * 9, z * 9) * 0.35).lerp(P.earth, 0.2 + fbm(x * 5 + 3, z * 5) * 0.3); }
+      if (e < 1.24 && e >= 1.04) c.copy(P.rock).lerp(P.sand, 0.3); // bare rock lip
+      if (e < 1.04) { c.setHex(0xb9b0a2); if (y < -0.24) { c.copy(P.grass).multiplyScalar(0.5 + fbm(x * 9, z * 9) * 0.35).lerp(P.earth, 0.2 + fbm(x * 5 + 3, z * 5) * 0.3); if (fbm(x * 6 + 9, z * 6) > 0.58) c.copy(P.rock).lerp(P.earth, 0.5); c.multiplyScalar(1 - sm(0.6, 0.95, e) * 0.35); } } // any terrain glimpsed behind the skin is the same pale stone
     },
   });
   // ---- the sinkhole walls: stepped ledges of pale limestone, rust-red and black with runoff
-  pitSkin(g, pit, PX, PZ, Y, -0.4, { level: 0.985, tiers: 4, step: 0.024, amp: 0.02, seed: 3 });
+  pitSkin(g, pit, PX, PZ, Y, -0.4, { level: 0.925, tiers: 4, step: 0.022, amp: 0.018, seed: 3, cap: 0.085 }); // set well inside the terrain's own drop, its cap forming the bare rock lip
   for (let k = 0; k < 34; k++) { const a = k * 0.19 + 0.2 * Math.sin(k), [x, z] = rim(a, 0.74 + (k % 4) * 0.05); boulder(g, x, Y(x, z) + 0.01, z, 0.022 + (k % 5) * 0.009, k, M.karstFlat); } // talus apron hiding the foot of the wall
-  for (let k = 0; k < 16; k++) { const a = k * 0.4 + 0.1, [x, z] = rim(a, 0.9); tree(g, 'shrub', x, z, 1.3, -0.08 - (k % 3) * 0.09, k); } // bushes on the ledges
+  for (let k = 0; k < 16; k++) { const a = k * 0.4 + 0.1, [x, z] = rim(a, 0.9); for (let q = 0; q < 2; q++) tree(g, 'oak', x + q * 0.012, z + q * 0.008, 0.38 - q * 0.1, -0.09 - (k % 3) * 0.09 - q * 0.012, k + q); } // bushes rooted in the ledges
   const onLip = (a, off) => { const [x, z, r] = rim(a, 1.0); return [PX + Math.cos(a) * (r + off), PZ + Math.sin(a) * (r + off)]; };
   // ---- the Olban tower: squat, three storeys of polygonal masonry, broken top, right on the edge
   const TA = 2.42, [tx, tz] = onLip(TA, 0.09), ty = Y(tx, tz) - 0.008, tg = new THREE.Group(); tg.position.set(tx, ty, tz); tg.rotation.y = 0.3; g.add(tg);
@@ -40,9 +40,9 @@ export default function kanlidivane(g) {
   rubble(tg, 0.0, 0.11, 4, 0.14, 0.022, M.limestone, 3);
   // ---- reliefs cut in the wall below the tower: a family of six in a framed niche; a single figure further round
   const niche = (a, depth, w, hh, n) => {
-    const [x, z] = rim(a, 0.96), ng = new THREE.Group(); ng.position.set(x, depth, z); ng.rotation.y = -a + Math.PI / 2 + Math.PI; g.add(ng);
-    B(ng, M.karstFlat, w + 0.024, hh + 0.024, 0.006, 0, -0.012, 0.0); B(ng, M.plaster, w, hh, 0.003, 0, 0, 0.003); // shallow dressed recess, flush with the wall
-    for (let k = 0; k < n; k++) { const seated = n === 6 && k < 2, fh = seated ? hh * 0.62 : hh * (k > 3 ? 0.5 : 0.8), fx = -w / 2 + (k + 0.5) * w / n; const f = put(ng, new THREE.CapsuleGeometry(w / n * 0.3, fh - w / n * 0.6, 3, 8), M.relief, fx, fh / 2 + 0.003, 0.014); f.scale.z = 0.5; put(ng, new THREE.SphereGeometry(w / n * 0.26, 8, 6), M.relief, fx, fh + w / n * 0.2, 0.014).scale.z = 0.6; if (seated) B(ng, M.relief, w / n * 0.8, fh * 0.35, 0.008, fx, 0.003, 0.012); }
+    const [x, z] = rim(a, 0.93), ng = new THREE.Group(); ng.position.set(x, depth, z); ng.rotation.y = -a + Math.PI / 2 + Math.PI; g.add(ng);
+    B(ng, M.karstFlat, w + 0.03, hh + 0.03, 0.03, 0, -0.015, -0.012); B(ng, M.plaster, w, hh, 0.003, 0, 0, 0.003); // shallow dressed recess, flush with the wall
+    for (let k = 0; k < n; k++) { const seated = n === 6 && k < 2, fh = seated ? hh * 0.66 : hh * (k > 3 ? 0.62 : 0.84), fx = -w / 2 + (k + 0.5) * w / n; const f = put(ng, new THREE.CapsuleGeometry(w / n * 0.3, fh - w / n * 0.6, 3, 8), M.relief, fx, fh / 2 + 0.003, 0.014); f.scale.z = 0.5; put(ng, new THREE.SphereGeometry(w / n * 0.26, 8, 6), M.relief, fx, fh + w / n * 0.2, 0.014).scale.z = 0.6; if (seated) B(ng, M.relief, w / n * 0.8, fh * 0.35, 0.008, fx, 0.003, 0.012); }
   };
   niche(TA + 0.55, -0.09, 0.26, 0.11, 6); niche(TA + 1.25, -0.1, 0.05, 0.1, 1);
   // ---- basilicas on the lip, apses to the east
@@ -90,7 +90,7 @@ export default function kanlidivane(g) {
   for (let k = 0; k < 14; k++) { const a = k * 0.47, r = 0.72 + (k % 3) * 0.07, x = Math.cos(a) * r, z = Math.sin(a) * r; if (pit(x, z) > 1.25) boulder(g, x, Y(x, z) + 0.004, z, 0.018 + (k % 3) * 0.008, k + 5, M.karstFlat); }
   // ---- fig and carob on the floor; low maquis and olives above, kept off the sightlines
   const blds = [[tx, tz, 0.16], B4.concat(0.24), B2.concat(0.18), B3.concat(0.17), B1.concat(0.17), [ax, az, 0.17]];
-  scatter(g, ['oak', 'olive', 'shrub', 'oak', 'shrub'], 16, [-0.38, -0.22, 0.4, 0.3], Y, 5, 0.55, 0.9, (x, z) => pit(x, z) < 0.6);
+  scatter(g, ['oak', 'olive', 'shrub', 'oak', 'shrub'], 34, [-0.44, -0.3, 0.46, 0.36], Y, 5, 0.5, 0.9, (x, z) => pit(x, z) < 0.72);
   scatter(g, ['shrub', 'shrub', 'olive'], 24, [-0.95, -0.95, 0.95, 0.95], Y, 9, 0.55, 0.8, (x, z) => pit(x, z) > 1.3 && blds.every(([bx, bz, r]) => Math.hypot(x - bx, z - bz) > r) && !(z > 0.5 && Math.abs(x) < 0.3));
   // the southern approach: a paved path to the tower, a rock-cut cistern mouth, olives
   for (let k = 0; k < 12; k++) { const t = k / 11, x = 0.1 - t * (0.1 - tx - 0.12), z = 0.9 - t * (0.9 - tz - 0.1); if (Math.hypot(x, z) < 0.93) B(g, M.paving, 0.03, 0.004, 0.022, x, Y(x, z) + 0.001, z, 0.4 + Math.sin(k) * 0.2); }

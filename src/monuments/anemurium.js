@@ -11,7 +11,7 @@ export default function anemurium(g) {
     water: true, dry: 0.8,
     h: (x, z) => {
       let y = 0.035 + sm(0.35, -1.0, x) * 0.27 + fbm(x * 2.4, z * 2.4 + 8) * 0.022;
-      y += hill(x, z, 0.08, 0.95, 0.34, 0.24); // the cape and its citadel
+      y += hill(x, z, 0.12, 0.8, 0.24, 0.13); // the cape and its citadel
       const pd = Math.max(Math.abs(x - 0.3) / 0.17, Math.abs(z - 0.42) / 0.16); if (pd < 1.3) y = lerp(0.062, y, sm(1.0, 1.3, pd)); // level court of the palaestra
       y -= sm(shore(z) - 0.05, shore(z) + 0.2, x) * 0.22;
       const d = Math.hypot(x - TH.x, z - TH.z);
@@ -21,7 +21,7 @@ export default function anemurium(g) {
     },
     tint: (x, z, y, s, c, P) => {
       c.lerp(P.rock, 0.25);
-      if (Math.abs(x - 0.3 - 0.03 * Math.sin(z * 5)) < 0.022 && z > -0.9 && z < 0.24 && y > 0.02) c.copy(P.sand).lerp(P.rock, 0.45); // the paved main street
+      if (Math.abs(x - 0.3 - 0.03 * Math.sin(z * 5)) < 0.026 && z > -0.9 && z < 0.24 && y > 0.02) c.setHex(0xcfc6b2); // the paved main street
       if (x > shore(z) - 0.13 && y > 0) c.lerp(P.sand, sm(shore(z) - 0.13, shore(z) - 0.04, x)); // beach
     },
   });
@@ -33,7 +33,7 @@ export default function anemurium(g) {
   const ox = 0.0, oz = -0.04, oy = Y(ox, oz) - 0.006, og = new THREE.Group(); og.position.set(ox, oy, oz); g.add(og);
   cavea(og, { r0: 0.045, r1: 0.14, rows: 7, arc: Math.PI, stairs: 3, ry: -Math.PI / 2, material: M.limestone });
   [[0.02, 0.085], [0.09, 0.06], [-0.06, 0.07]].forEach(([z, hh], k) => B(og, M.rubble, 0.022, hh, 0.1 + (k === 0 ? 0.02 : 0), 0.165, 0, -0.1 + k * 0.105)); // east wall, ragged
-  B(og, M.rubble, 0.32, 0.16, 0.022, 0.0, 0, -0.17); B(og, M.rubble, 0.32, 0.13, 0.022, 0.0, 0, 0.17);
+  [[-0.11, 0.16, 0.1], [0.0, 0.12, 0.12], [0.11, 0.075, 0.1]].forEach(([x, hh, w]) => B(og, M.rubble, w, hh, 0.022, x, 0, -0.17)); [[-0.1, 0.13, 0.12], [0.02, 0.09, 0.12], [0.12, 0.05, 0.08]].forEach(([x, hh, w]) => B(og, M.rubble, w, hh, 0.022, x, 0, 0.17)); // long walls stepping down toward the sea
   archWall(og, M.rubble, 0.34, 0.15, 0.022, [-0.1, 0, 0.1].map((x) => ({ x, w: 0.055, h: 0.1 })), -0.155, 0, 0, Math.PI / 2);
   for (const x of [-0.1, 0, 0.1]) archRing(og, M.brick, 0.055, 0.1, 0.006, x, 0, 0, 0, 7).position.set(-0.168, 0, -x), og.children[og.children.length - 1].rotation.y = Math.PI / 2;
   put(og, new THREE.PlaneGeometry(0.08, 0.08), M.mosaic, -0.08, 0.008, 0).rotation.x = -Math.PI / 2;
@@ -45,6 +45,7 @@ export default function anemurium(g) {
   for (const z of [-0.07, 0.0, 0.07]) { B(bg, M.dark, 0.004, 0.06, 0.03, HW * 1.5 + 0.001, 0.09, z); archRing(bg, M.brick, 0.03, 0.15, 0.004, 0, 0, 0, 0, 7).position.set(HW * 1.5 + 0.003, 0, z); bg.children[bg.children.length - 1].rotation.y = Math.PI / 2; } // arched windows in the south flank
   archWall(bg, M.rubble, HW * 3 + 0.01, WH + 0.03, 0.024, [-HW, 0, HW].map((x) => ({ x, w: 0.07, h: 0.15 })).concat([-HW, 0, HW].map((x) => ({ x, w: 0.03, h: 0.2, sill: 0.165 }))), 0, 0, -0.13);
   for (const x of [-HW, 0, HW]) archRing(bg, M.brick, 0.07, 0.15, 0.006, x, 0, -0.144, 0, 9);
+  [[-HW * 1.1, 0.05, 0.1], [-0.02, 0.025, 0.08], [HW * 0.9, 0.012, 0.07]].forEach(([x, hh, w]) => B(bg, M.rubble, w, hh, 0.024, x, WH + 0.03, -0.13)); // the front survives to uneven heights
   apse(bg, M.rubble, 0.05, 0.14, -HW * 1.5 - 0.01, 0, 0.04, Math.PI / 2);
   rubble(bg, HW, -0.02, 6, 0.1, 0.022, M.rubble, 4);
   const pz = -0.27, py0 = 0.004;
@@ -54,13 +55,14 @@ export default function anemurium(g) {
   for (let i = 0; i < 4; i++) col(bg, -0.126, pz - 0.04 + i * 0.042, i === 1 ? 0.13 : 0.025, { y: py0, r: 0.009, broken: i !== 1, shaft: M.weathered });
   // ---- shore: continuous sea wall with breaches, a small beach bath, an early church
   const sw = []; for (let k = 0; k <= 10; k++) { const z = -0.5 + k * 0.105; sw.push([shore(z) - 0.085, z]); }
-  curtain(g, M.rubble, sw, 0.045, 0.02, { closed: false, tower: false, Y, skip: [3, 7] });
+  curtain(g, M.rubble, sw, 0.045, 0.02, { closed: false, tower: false, Y, skip: [3, 7], merlons: false });
   vault(g, M.rubbleDS, 0.08, 0.13, 0.08, 0.42, Y(0.42, -0.22) - 0.006, -0.22, Math.PI / 2, 2); vault(g, M.rubbleDS, 0.07, 0.11, 0.07, 0.42, Y(0.42, -0.135) - 0.006, -0.135, Math.PI / 2, 1);
   const cx = 0.4, cz = 0.12, cy = Y(cx, cz) - 0.006;
   apse(g, M.rubble, 0.045, 0.1, cx + 0.07, cy, cz, -Math.PI / 2); B(g, M.rubble, 0.16, 0.06, 0.014, cx - 0.01, cy, cz - 0.047); B(g, M.rubble, 0.16, 0.04, 0.014, cx - 0.01, cy, cz + 0.047);
   // ---- city wall climbing the slope, dividing the living from the dead
   const wp = []; for (let k = 0; k <= 6; k++) wp.push([0.48 - k * 0.22, -0.4 - 0.03 * Math.sin(k * 1.3)]);
-  curtain(g, M.rubble, wp, 0.06, 0.02, { closed: false, tower: 'square', tr: 0.022, th: 0.085, Y, skip: [2] });
+  curtain(g, M.rubble, wp, 0.06, 0.02, { closed: false, tower: false, Y, skip: [2], merlons: false });
+  wp.forEach(([x, z], k) => B(g, M.rubble, 0.044, [0.085, 0.05, 0.09, 0.035, 0.075, 0.06, 0.08][k], 0.044, x, Y(x, z) - 0.01, z)); // towers broken to different heights
   // ---- necropolis: barrel-vaulted house-tombs, some two-storeyed, some with a walled forecourt
   let n = 0; const placed = [];
   for (let j = 0; j < 4; j++) for (let i = 0; i < 9; i++, n++) {
@@ -74,12 +76,12 @@ export default function anemurium(g) {
     if (n % 3 === 1) { B(t, M.rubble, w * 1.3, 0.02, 0.01, 0, 0, w * 1.25); for (const s of [-1, 1]) B(t, M.rubble, 0.01, 0.02, w * 0.6, s * w * 0.65, 0, w * 0.97); } // forecourt
   }
   // ---- citadel on the cape; aqueduct channel contouring the upper slope, on arches where it crosses a gully
-  const cp = [[-0.28, 0.76], [-0.14, 0.72], [-0.1, 0.78], [0.06, 0.73], [0.1, 0.79], [0.26, 0.74], [0.38, 0.72]];
-  curtain(g, M.rubble, cp, 0.04, 0.018, { closed: false, tower: false, Y });
-  for (const k of [1, 3, 5]) { const [x, z] = cp[k]; B(g, M.rubble, 0.04, 0.062, 0.04, x, Y(x, z) - 0.01, z, 0.2); }
-  B(g, M.rubble, 0.07, 0.03, 0.05, 0.06, Y(0.06, 0.84) - 0.006, 0.84, 0.3); // ruin on the summit
+  const cp = [[-0.16, 0.66], [-0.04, 0.62], [0.02, 0.67], [0.14, 0.62], [0.2, 0.67], [0.32, 0.63], [0.4, 0.68]]; // medieval curtain across the neck of the cape
+  curtain(g, M.rubble, cp, 0.07, 0.02, { closed: false, tower: false, Y });
+  for (const k of [1, 3, 5]) { const [x, z] = cp[k], y = Y(x, z) - 0.01; B(g, M.rubble, 0.06, 0.11, 0.06, x, y, z, 0.2); for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) B(g, M.rubble, 0.014, 0.008, 0.014, x + sx * 0.022, y + 0.11, z + sz * 0.022, 0.2); }
+  { const ky = Y(0.12, 0.8) - 0.008; B(g, M.rubble, 0.09, 0.075, 0.07, 0.12, ky, 0.8, 0.3); B(g, M.rubble, 0.05, 0.03, 0.04, 0.1, ky + 0.075, 0.79, 0.3); B(g, M.rubble, 0.12, 0.03, 0.014, 0.2, ky, 0.84, -0.2); } // keep on the summit
   const aq = []; for (let k = 0; k <= 8; k++) aq.push([-0.74 + 0.03 * Math.sin(k), -0.36 + k * 0.1]);
-  curtain(g, M.rubble, aq.filter(([x, z]) => Math.hypot(x, z) < 0.92), 0.022, 0.014, { closed: false, tower: false, Y, skip: [4] });
+  curtain(g, M.rubble, aq.filter(([x, z]) => Math.hypot(x, z) < 0.92), 0.022, 0.014, { closed: false, tower: false, Y, skip: [4], merlons: false });
   archWall(g, M.rubble, 0.11, 0.05, 0.016, [{ x: -0.025, w: 0.03, h: 0.036 }, { x: 0.025, w: 0.03, h: 0.036 }], -0.725, Y(-0.725, 0.09) - 0.02, 0.09, Math.PI / 2);
   for (let k = 0; k < 11; k++) {
     const x = 0.22 + (k % 2) * 0.15 + Math.sin(k * 2.1) * 0.012, z = -0.34 + Math.floor(k / 2) * 0.1 + (k % 2) * 0.03, w = 0.07 + (k % 3) * 0.012, d = 0.06 + (k % 2) * 0.015, y = Y(x, z) - 0.006, hg = new THREE.Group(); hg.position.set(x, y, z); hg.rotation.y = 0.1 * Math.sin(k); g.add(hg);
