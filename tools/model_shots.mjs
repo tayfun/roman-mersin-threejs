@@ -5,7 +5,7 @@ const { chromium } = createRequire(import.meta.url)('playwright');
 const out = process.argv[2] || 'shots';
 const all = ['anemurium', 'seleucia', 'diocaesarea', 'cennet', 'adamkayalar', 'korykos', 'elaiussa', 'kanlidivane', 'soli', 'tarsus'];
 const models = process.argv[3] ? process.argv[3].split(',') : all;
-const tilt = { cennet: 'a=18&e=46&d=3.0', kanlidivane: 'a=18&e=44&d=3.0', adamkayalar: 'a=14&e=20&d=3.0' }; // matches each site's in-map view
+const tilt = { cennet: 'a=194&e=48&d=3.0', kanlidivane: 'a=18&e=44&d=3.0', adamkayalar: 'a=14&e=20&d=3.0' }; // matches each site's in-map view
 const views = { front: 'a=18&e=30&d=3.1', high: 'a=-35&e=52&d=3.1', back: 'a=160&e=28&d=3.1', close: 'a=30&e=18&d=1.7&ty=0.12', dusk: 'a=-20&e=24&d=2.9&dusk=1' };
 const base = process.env.BASE || 'http://localhost:5173/';
 const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });

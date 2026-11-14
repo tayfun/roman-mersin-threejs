@@ -102,7 +102,7 @@ export const SITES = [
   {
     id: 'cennet',
     model: 'cennet',
-    view: { polar: 44 }, // look down into the sinkholes
+    view: { polar: 42, az: Math.PI + 0.25 }, // from the north, looking down into the pits toward the cave mouth in the south wall
     name: 'Corycian Cave',
     modern: 'Cennet & Cehennem ("Heaven & Hell")',
     lat: 36.4525, lon: 34.1056,

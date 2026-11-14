@@ -76,13 +76,25 @@ export const T = {
   limestone: () => tex('lime', () => ashlar(0xd9c79f, '#8f7f62', 8, 0.1, 3)),
   honey: () => tex('honey', () => ashlar(0xcda873, '#7d6744', 8, 0.12, 5)),
   grey: () => tex('grey', () => ashlar(0xa9a294, '#6a655c', 9, 0.1, 7)),
-  rubble: () => tex('rubble', () => ashlar(0xb9a889, '#6f6350', 14, 0.2, 9)),
-  concrete: () => tex('concrete', () => canvasTex(256, (g, s) => {
-    g.fillStyle = '#9c8c78'; g.fillRect(0, 0, s, s);
+  rubble: () => tex('rubble', () => ashlar(0xa89d88, '#5f574a', 22, 0.22, 9)),
+  cobble: () => tex('cobble', () => ashlar(0xb3a58c, '#6b5f4c', 18, 0.14, 15)),
+  brick: () => tex('brick', () => canvasTex(256, (g, s) => { // mortared rubble with red brick lacing courses
+    g.drawImage(T.rubble().image, 0, 0);
+    const r = rng(61);
+    for (const y0 of [40, 126, 212]) for (let j = 0; j < 3; j++) { let x = -r() * 20; while (x < s) { const w = 18 + r() * 8; g.fillStyle = `hsl(${12 + r() * 8},${45 + r() * 15}%,${36 + r() * 12}%)`; g.fillRect(x + 1, y0 + j * 7 + 1, w - 2, 5); x += w; } }
+  })),
+  karst: () => tex('karst', () => canvasTex(256, (g, s) => { // pale grey limestone cliff: uneven beds, rust and black runoff streaks
+    const r = rng(67); let y = 0;
+    while (y < s) { const h = 10 + r() * 46; g.fillStyle = `hsl(${32 + r() * 10},${8 + r() * 10}%,${62 + r() * 18}%)`; g.fillRect(0, y, s, h); g.fillStyle = 'rgba(60,50,40,0.28)'; g.fillRect(0, y + h - 2, s, 1 + r() * 2); y += h; }
+    for (let i = 0; i < 30; i++) { const x = r() * s, w = 2 + r() * 16, y0 = r() * s * 0.6, len = 30 + r() * 150; const gr = g.createLinearGradient(0, y0, 0, y0 + len); const rust = r() > 0.35; gr.addColorStop(0, rust ? `rgba(170,92,52,${0.15 + r() * 0.3})` : `rgba(40,36,32,${0.15 + r() * 0.25})`); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(x, y0, w, len); }
+    blotches(g, s, 50, 0.22, 71); speckle(g, s, 700, 0.2);
+  })),
+  concrete: () => tex('concrete', () => canvasTex(256, (g, s) => { // Roman concrete core: brown-grey matrix, small aggregate
+    g.fillStyle = '#84766a'; g.fillRect(0, 0, s, s);
     const r = rng(11);
-    for (let i = 0; i < 500; i++) { g.fillStyle = `hsl(${28 + r() * 14},${12 + r() * 14}%,${38 + r() * 30}%)`; g.beginPath(); g.arc(r() * s, r() * s, 1.5 + r() * 5, 0, 7); g.fill(); }
-    for (let j = 0; j < 6; j++) { g.fillStyle = 'rgba(40,30,20,0.18)'; g.fillRect(0, j * s / 6, s, 2); }
-    blotches(g, s, 30, 0.2, 13);
+    for (let i = 0; i < 2600; i++) { g.fillStyle = `hsl(${24 + r() * 16},${8 + r() * 12}%,${30 + r() * 34}%)`; g.beginPath(); g.arc(r() * s, r() * s, 0.8 + r() * 2.2, 0, 7); g.fill(); }
+    for (let j = 0; j < 9; j++) { g.fillStyle = 'rgba(40,30,20,0.16)'; g.fillRect(0, j * s / 9 + r() * 6, s, 2); }
+    blotches(g, s, 40, 0.22, 13);
   })),
   marble: () => tex('marble', () => canvasTex(256, (g, s) => {
     g.fillStyle = '#efe6d3'; g.fillRect(0, 0, s, s);
@@ -123,7 +135,7 @@ export const T = {
   paving: () => tex('paving', () => ashlar(0xcfc3a6, '#8a7d66', 6, 0.12, 37)),
   ground: () => tex('ground', () => canvasTex(256, (g, s) => { // greyscale detail multiplied into vertex colours
     g.fillStyle = '#d8d8d8'; g.fillRect(0, 0, s, s);
-    blotches(g, s, 90, 0.3, 41); speckle(g, s, 2600, 0.3); speckle(g, s, 900, 0.3, false);
+    speckle(g, s, 3200, 0.26); speckle(g, s, 1200, 0.26, false);
   }, 5)),
   strata: () => tex('strata', () => canvasTex(256, (g, s) => { // layered cliff rock, greyscale-ish
     const r = rng(43); let y = 0;
@@ -174,8 +186,21 @@ export const M = {
   get rubble() { return mat('rubble', () => stone('rubble')); },
   get rubbleDS() { return mat('rubbleDS', () => stone('rubble', { side: THREE.DoubleSide })); },
   get concrete() { return mat('concrete', () => stone('concrete', { bumpScale: 2.5 })); },
+  get capital() { return mat('capital', () => std({ map: T.marble(), color: 0xe9dcc3, roughness: 0.7, flatShading: true })); },
+  get weathered() { return mat('weathered', () => std({ map: T.marble(), color: 0xdccfb4, roughness: 0.8 })); },
+  get karst() { return mat('karst', () => std({ map: T.karst(), bumpMap: T.karst(), bumpScale: 3, flatShading: true, side: THREE.DoubleSide })); },
+  get relief() { return mat('relief', () => std({ map: T.karst(), color: 0xfff0d8, roughness: 0.85 })); },
+  get karstFlat() { return mat('karstFlat', () => std({ map: T.karst(), roughness: 0.9 })); },
+  get karstDark() { return mat('karstDark', () => std({ map: T.karst(), color: 0x6d6258 })); },
+  get brick() { return mat('brick', () => stone('brick')); },
+  get brickDS() { return mat('brickDS', () => stone('brick', { side: THREE.DoubleSide })); },
+  get cobble() { return mat('cobble', () => stone('cobble')); },
+  get greyGranite() { return mat('greyGranite', () => std({ map: T.marble(), color: 0xa39a96, roughness: 0.45 })); },
+  get reed() { return mat('reed', () => std({ color: 0x8a9a4e, flatShading: true })); },
+  get oak() { return mat('oak', () => std({ color: 0x5f7a3a, flatShading: true })); },
   get marble() { return mat('marble', () => std({ map: T.marble(), roughness: 0.6 })); },
   get shaft() { return mat('shaft', () => std({ map: T.shaft(), bumpMap: T.flutes(), bumpScale: 2.2, roughness: 0.62 })); },
+  get shaftWarm() { return mat('shaftWarm', () => std({ map: T.shaft(), bumpMap: T.flutes(), bumpScale: 2.2, color: 0xdccaa6, roughness: 0.75 })); },
   get granite() { return mat('granite', () => std({ map: T.concrete(), color: 0xc9a9a0, roughness: 0.5 })); },
   get basalt() { return mat('basalt', () => stone('basalt', { roughness: 0.7 })); },
   get paving() { return mat('paving', () => stone('paving')); },
@@ -207,7 +232,7 @@ export const M = {
 };
 
 // ---------------------------------------------------------------- primitives
-const TS = 0.5; // one texture tile spans this many model units
+const TS = 0.3; // one texture tile spans this many model units
 export function put(g, geo, material, x = 0, y = 0, z = 0, ry = 0) {
   const m = new THREE.Mesh(geo, material);
   m.position.set(x, y, z); m.rotation.y = ry;
@@ -231,7 +256,7 @@ export function cyl(g, material, rt, rb, h, x = 0, y = 0, z = 0, seg = 16, open 
 // classical column with base, fluted shaft and capital
 const colGeo = {};
 export function col(g, x, z, h, o = {}) {
-  const { r = 0.021, y = 0, style = 'cor', broken = false, shaft = M.shaft, cap = M.marble, bracket = 0, seed = 1 } = o;
+  const { r = 0.021, y = 0, style = 'cor', broken = false, shaft = M.shaft, cap = M.capital, bracket = 0, seed = 1 } = o;
   const grp = new THREE.Group(); grp.position.set(x, y, z); g.add(grp);
   const bh = r * 0.7, ch = style === 'cor' ? r * 2.3 : r * 1.0;
   const hs = Math.max(0.01, (broken ? h : h - ch) - bh);
@@ -240,17 +265,24 @@ export function col(g, x, z, h, o = {}) {
   const s = put(grp, colGeo.shaft ||= new THREE.CylinderGeometry(0.86, 1, 1, 16, 1, false), shaft, 0, bh + hs / 2, 0);
   s.scale.set(r, hs, r); s.rotation.y = seed * 1.7;
   if (broken) { // jagged break
-    const t = put(grp, colGeo.brk ||= new THREE.CylinderGeometry(0.5, 0.88, 1, 7), shaft, r * 0.15, bh + hs + r * 0.2, 0);
+    const t = put(grp, colGeo.brk ||= new THREE.CylinderGeometry(0.5, 0.88, 1, 7), M.weathered, r * 0.15, bh + hs + r * 0.2, 0);
     t.scale.set(r, r * 0.6, r); t.rotation.set(0.25, seed, 0.2);
   } else if (style === 'cor') {
-    put(grp, colGeo.bell ||= new THREE.CylinderGeometry(1.5, 0.88, 1, 12), cap, 0, bh + hs + ch * 0.42, 0).scale.set(r, ch * 0.84, r);
-    const ring = put(grp, colGeo.ring ||= new THREE.TorusGeometry(0.95, 0.16, 6, 14), cap, 0, bh + hs + ch * 0.1, 0);
+    put(grp, colGeo.bell ||= new THREE.CylinderGeometry(1.25, 0.88, 1, 12), cap, 0, bh + hs + ch * 0.42, 0).scale.set(r, ch * 0.84, r);
+    const ring = put(grp, colGeo.ring ||= new THREE.TorusGeometry(0.95, 0.14, 6, 14), cap, 0, bh + hs + ch * 0.06, 0);
     ring.scale.setScalar(r); ring.rotation.x = Math.PI / 2;
-    for (let k = 0; k < 4; k++) { // corner volutes
-      const a = k * Math.PI / 2 + Math.PI / 4;
-      put(grp, colGeo.vol ||= new THREE.SphereGeometry(0.42, 8, 6), cap, Math.cos(a) * r * 1.55, bh + hs + ch * 0.7, Math.sin(a) * r * 1.55).scale.setScalar(r);
+    for (let tier = 0; tier < 2; tier++) for (let k = 0; k < 8; k++) { // two rings of acanthus leaves
+      const a = (k + tier * 0.5) / 8 * 6.283, rr = r * (1.05 + tier * 0.22);
+      const leaf = put(grp, colGeo.leaf ||= new THREE.ConeGeometry(0.3, 1, 4), cap, Math.cos(a) * rr, bh + hs + ch * (0.24 + tier * 0.3), Math.sin(a) * rr);
+      leaf.scale.set(r, ch * 0.42, r * 0.5); leaf.rotation.set(0, -a + Math.PI / 2, 0); leaf.rotateX(0.45 + tier * 0.15);
     }
-    B(grp, cap, r * 3.3, ch * 0.16, r * 3.3, 0, bh + hs + ch * 0.84, 0);
+    for (let k = 0; k < 4; k++) { // corner volutes under the abacus
+      const a = k * Math.PI / 2 + Math.PI / 4;
+      const v = put(grp, colGeo.vol ||= new THREE.TorusGeometry(0.26, 0.11, 5, 8), cap, Math.cos(a) * r * 1.42, bh + hs + ch * 0.72, Math.sin(a) * r * 1.42);
+      v.scale.setScalar(r); v.rotation.y = -a;
+    }
+    B(grp, cap, r * 2.9, ch * 0.13, r * 2.9, 0, bh + hs + ch * 0.86, 0);
+    B(grp, cap, r * 2.5, ch * 0.05, r * 2.5, 0, bh + hs + ch * 0.81, 0);
   } else {
     put(grp, colGeo.ech ||= new THREE.CylinderGeometry(1.35, 0.88, 1, 14), cap, 0, bh + hs + ch * 0.3, 0).scale.set(r, ch * 0.6, r);
     B(grp, cap, r * 2.9, ch * 0.4, r * 2.9, 0, bh + hs + ch * 0.6, 0);
@@ -268,7 +300,7 @@ export function beam(g, x1, z1, x2, z2, y, w = 0.055, h = 0.04, material = M.mar
   B(g, material, len, h * 0.62, w, cx, y, cz, ry);
   B(g, material, len + w * 0.25, h * 0.38, w * 1.3, cx, y + h * 0.62, cz, ry); // cornice
 }
-export function drums(g, x, z, n, r = 0.021, seed = 1, y = 0, material = M.shaft) { // fallen column drums
+export function drums(g, x, z, n, r = 0.021, seed = 1, y = 0, material = M.weathered) { // fallen column drums
   const rnd = rng(seed);
   for (let i = 0; i < n; i++) {
     const len = r * (1.5 + rnd() * 2.5);
@@ -305,8 +337,9 @@ export function vault(g, material, w, len, wallH, x = 0, y = 0, z = 0, ry = 0, e
   B(grp, material, t, wallH, len, -w / 2 + t / 2, 0, 0); B(grp, material, t, wallH, len, w / 2 - t / 2, 0, 0);
   const geo = new THREE.CylinderGeometry(w / 2, w / 2, len, 14, 1, true, -Math.PI / 2, Math.PI);
   const uv = geo.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * w * 1.57 / TS, uv.getY(i) * len / TS);
-  const roof = put(grp, geo, material, 0, wallH, 0); roof.rotation.x = Math.PI / 2;
-  if (ends) archWall(grp, material, w, wallH + w / 2, t, [{ x: 0, w: w * 0.55, h: wallH + w * 0.22 }], 0, 0, -len / 2 + t / 2);
+  const roof = put(grp, geo, material, 0, wallH, 0); roof.rotation.x = -Math.PI / 2;
+  if (ends) archWall(grp, material, w, wallH + w / 2, t, [{ x: 0, w: w * 0.4, h: wallH * 0.8 }], 0, 0, len / 2 - t / 2); // front, with a door
+  if (ends > 1) archWall(grp, material, w, wallH + w / 2, t, [], 0, 0, -len / 2 + t / 2);
   return grp;
 }
 // theatre seating: stepped lathe + radial stairways. Opens toward +z.
@@ -315,9 +348,9 @@ export function cavea(g, { r0 = 0.16, r1 = 0.55, rows = 10, arc = Math.PI, stair
   const dr = (r1 - r0) / rows, dy = dr * 0.62, pts = [new THREE.Vector2(r0, 0)];
   for (let i = 0; i < rows; i++) pts.push(new THREE.Vector2(r0 + i * dr, (i + 1) * dy), new THREE.Vector2(r0 + (i + 1) * dr, (i + 1) * dy));
   pts.push(new THREE.Vector2(r1 + dr * 0.6, rows * dy));
-  const geo = new THREE.LatheGeometry(pts, 48, Math.PI / 2 - arc / 2 + Math.PI, arc);
+  const geo = new THREE.LatheGeometry(pts, 48, Math.PI - arc / 2, arc);
   { // outer retaining wall in coursed masonry
-    const ro = r1 + dr * 0.6, hw = rows * dy, wg = new THREE.CylinderGeometry(ro, ro, hw, 48, 1, true, Math.PI / 2 - arc / 2 + Math.PI, arc), wu = wg.attributes.uv;
+    const ro = r1 + dr * 0.6, hw = rows * dy, wg = new THREE.CylinderGeometry(ro, ro, hw, 48, 1, true, Math.PI - arc / 2, arc), wu = wg.attributes.uv;
     for (let i = 0; i < wu.count; i++) wu.setXY(i, wu.getX(i) * arc * ro / TS, wu.getY(i) * hw / TS);
     put(grp, wg, material === M.honey ? M.honeyDS : material === M.limestone ? M.limestoneDS : M.rubbleDS, 0, hw / 2, 0);
   }
@@ -349,7 +382,7 @@ export function cavea(g, { r0 = 0.16, r1 = 0.55, rows = 10, arc = Math.PI, stair
 const geoCache = {};
 const ico = (d = 0) => (geoCache['ico' + d] ||= new THREE.IcosahedronGeometry(1, d));
 export function tree(g, kind, x, z, s = 1, y = 0, seed = 1) {
-  const grp = new THREE.Group(); grp.position.set(x, y, z); grp.rotation.y = seed * 2.4; grp.scale.setScalar(s); g.add(grp);
+  const grp = new THREE.Group(); grp.position.set(x, y, z); grp.rotation.y = seed * 2.4; grp.scale.setScalar(s * 0.72); g.add(grp);
   const trunk = (h, r = 0.012) => { const m = put(grp, geoCache.trunk ||= new THREE.CylinderGeometry(0.7, 1, 1, 6), M.trunk, 0, h / 2, 0); m.scale.set(r, h, r); return m; };
   if (kind === 'cypress') { trunk(0.05, 0.01); put(grp, geoCache.cyp ||= new THREE.ConeGeometry(1, 1, 7), M.cypress, 0, 0.19, 0).scale.set(0.035, 0.32, 0.035); }
   else if (kind === 'pine') { // umbrella pine
@@ -365,6 +398,14 @@ export function tree(g, kind, x, z, s = 1, y = 0, seed = 1) {
   } else if (kind === 'palm') {
     const t = trunk(0.22, 0.011); t.rotation.z = 0.06;
     for (let k = 0; k < 7; k++) { const a = k / 7 * 6.283; const f = put(grp, geoCache.frond ||= new THREE.ConeGeometry(0.018, 0.13, 4), M.pine, Math.cos(a) * 0.05, 0.215, Math.sin(a) * 0.05); f.rotation.set(Math.sin(a) * 1.9, 0, -Math.cos(a) * 1.9); f.scale.z = 0.4; }
+  } else if (kind === 'oak') { // scrub oak / carob: low round crown
+    trunk(0.05, 0.014);
+    for (const [dx, dy, dz, r] of [[0, 0.085, 0, 0.07], [0.04, 0.07, 0.03, 0.05], [-0.045, 0.075, -0.02, 0.055]]) put(grp, ico(1), M.oak, dx, dy, dz).scale.set(r, r * 0.8, r);
+  } else if (kind === 'cedar') { // layered conifer of the uplands
+    trunk(0.08, 0.012);
+    for (let k = 0; k < 3; k++) put(grp, geoCache.cyp ||= new THREE.ConeGeometry(1, 1, 7), M.cypress, 0, 0.1 + k * 0.065, 0).scale.set(0.075 - k * 0.02, 0.11, 0.075 - k * 0.02);
+  } else if (kind === 'reed') {
+    for (let k = 0; k < 5; k++) { const b = put(grp, geoCache.cyp ||= new THREE.ConeGeometry(1, 1, 7), M.reed, Math.cos(k * 2.4) * 0.012, 0.03, Math.sin(k * 2.4) * 0.012); b.scale.set(0.006, 0.06 + (k % 3) * 0.012, 0.006); b.rotation.z = (k - 2) * 0.12; }
   } else { // shrub
     put(grp, ico(0), M.shrub, 0, 0.02, 0).scale.set(0.035, 0.026, 0.035);
   }
@@ -410,7 +451,7 @@ export function galley(sailMat = M.sail, s = 1) {
 }
 
 // ---------------------------------------------------------------- more building parts
-const dsOf = (m) => (m === M.honey ? M.honeyDS : m === M.limestone ? M.limestoneDS : m === M.rubble ? M.rubbleDS : m);
+const dsOf = (m) => (m === M.honey ? M.honeyDS : m === M.limestone ? M.limestoneDS : m === M.rubble ? M.rubbleDS : m === M.brick ? M.brickDS : m);
 // half-cylinder apse shell, concave side facing +z
 export function apse(g, material, r, h, x = 0, y = 0, z = 0, ry = 0) {
   const geo = new THREE.CylinderGeometry(r, r, h, 16, 1, true, Math.PI / 2, Math.PI), uv = geo.attributes.uv;
@@ -453,7 +494,7 @@ export function curtain(g, material, pts, h, t = 0.025, o = {}) {
   }
   if (tower) for (const [x, z] of pts) {
     const y = Y(x, z) - 0.01;
-    if (tower === 'round') { cyl(g, material, tr, tr * 1.05, th, x, y, z, 12); cyl(g, material, tr * 1.12, tr * 1.12, 0.012, x, y + th, z, 12); }
+    if (tower === 'round') { cyl(g, material, tr, tr * 1.05, th, x, y, z, 12); for (let k = 0; k < 6; k++) { const a = k / 6 * 6.283; B(g, material, tr * 0.55, 0.012, tr * 0.35, x + Math.cos(a) * tr * 0.82, y + th, z + Math.sin(a) * tr * 0.82, -a + Math.PI / 2); } }
     else { B(g, material, tr * 2, th, tr * 2, x, y, z); for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) B(g, material, tr * 0.6, 0.014, tr * 0.6, x + sx * tr * 0.7, y + th, z + sz * tr * 0.7); }
   }
 }
@@ -477,6 +518,51 @@ export function stork(g, x, y, z) { // nest and bird
   put(g, geoCache.sbeak ||= new THREE.ConeGeometry(1, 1, 4), M.orange, x, y + 0.058, z + 0.024).scale.set(0.003, 0.018, 0.003);
   g.children[g.children.length - 1].rotation.x = Math.PI / 2;
   for (const s of [-1, 1]) put(g, geoCache.sneck, M.orange, x + s * 0.004, y + 0.015, z).scale.set(0.0015, 0.02, 0.0015);
+}
+
+// rock skin lining a sinkhole: follows the contour e(x,z) = level around (cx,cz), stepped into ledges.
+// yTop(x,z) gives the rim height; the skin runs down to yBot. Overhang > 0 leans the top inward (Cehennem).
+export function pitSkin(g, e, cx, cz, yTop, yBot, o = {}) {
+  const { level = 0.97, rmax = 1.2, seg = 96, tiers = 4, step = 0.022, amp = 0.014, material = M.karst, overhang = 0, seed = 1, mask = null } = o;
+  const pos = [], uv = [], idx = [], rows = tiers * 2 + 1;
+  let arc = 0, px = null, pz = null;
+  for (let k = 0; k <= seg; k++) {
+    const a = (k % seg) / seg * Math.PI * 2, ca = Math.cos(a), sa = Math.sin(a);
+    let lo = 0, hi = rmax; for (let it = 0; it < 22; it++) { const m = (lo + hi) / 2; if (e(cx + ca * m, cz + sa * m) < level) lo = m; else hi = m; }
+    const R = lo, x0 = cx + ca * R, z0 = cz + sa * R, top = yTop(x0, z0) + 0.004;
+    if (px !== null) arc += Math.hypot(x0 - px, z0 - pz); px = x0; pz = z0;
+    for (let j = 0; j < rows; j++) {
+      const t = j / (rows - 1), tier = Math.floor((j + 1) / 2); // pairs of rows make a vertical face then a ledge
+      const inset = tier * step - overhang * (1 - t) * 2 + (fbm(a * 7 + seed, j * 1.7) - 0.5) * amp * 2;
+      const r = Math.max(0.01, R - inset);
+      pos.push(cx + ca * r, top + (yBot - top) * t, cz + sa * r); uv.push(arc / TS * 0.6, (1 - t) * (top - yBot) / TS * 0.6);
+    }
+  }
+  for (let k = 0; k < seg; k++) { if (mask && !mask((k + 0.5) / seg * Math.PI * 2)) continue; for (let j = 0; j < rows - 1; j++) { const a0 = k * rows + j, b0 = a0 + rows; idx.push(a0, a0 + 1, b0, b0, a0 + 1, b0 + 1); } }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  geo.setIndex(idx); geo.computeVertexNormals();
+  return put(g, geo, material);
+}
+// ring of voussoirs around a round-headed opening (stands proud of an archWall face), in the wall's local frame
+export function archRing(g, material, w, hCrown, t, x = 0, y = 0, z = 0, ry = 0, n = 9) {
+  const grp = new THREE.Group(); grp.position.set(x, y, z); grp.rotation.y = ry; g.add(grp);
+  const r = w / 2, cy = hCrown - r, d = Math.max(0.012, w * 0.16);
+  for (let k = 0; k < n; k++) { const a = Math.PI * (k + 0.5) / n; const v = B(grp, material, d, (Math.PI * r / n) * 1.05, t, Math.cos(a) * (r + d / 2), cy + Math.sin(a) * (r + d / 2) - (Math.PI * r / n) * 0.52, 0); v.rotation.z = a; }
+  for (const s of [-1, 1]) B(grp, material, d * 1.5, d * 0.7, t * 1.05, s * (r + d / 2), cy - d * 0.7, 0); // imposts
+  return grp;
+}
+export function railing(g, pts, Y, h = 0.022, material = M.wood) {
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [x1, z1] = pts[i], [x2, z2] = pts[i + 1], len = Math.hypot(x2 - x1, z2 - z1), ry = -Math.atan2(z2 - z1, x2 - x1), cx = (x1 + x2) / 2, cz = (z1 + z2) / 2, y = Math.max(Y(x1, z1), Y(x2, z2));
+    B(g, material, 0.004, h, 0.004, x1, Y(x1, z1), z1); B(g, material, len, 0.003, 0.003, cx, y + h, cz, ry); B(g, material, len, 0.003, 0.003, cx, y + h * 0.55, cz, ry);
+  }
+}
+export function lion(g, x, z, y = 0, ry = 0, s = 1) { // crouching fountain lion on a block
+  const grp = new THREE.Group(); grp.position.set(x, y, z); grp.rotation.y = ry; grp.scale.setScalar(s); g.add(grp);
+  B(grp, M.weathered, 0.03, 0.02, 0.05, 0, 0, 0); B(grp, M.weathered, 0.02, 0.016, 0.038, 0, 0.02, -0.003);
+  B(grp, M.weathered, 0.018, 0.018, 0.016, 0, 0.03, 0.018); B(grp, M.weathered, 0.006, 0.014, 0.012, -0.007, 0.02, 0.02); B(grp, M.weathered, 0.006, 0.014, 0.012, 0.007, 0.02, 0.02);
+  return grp;
 }
 
 // ---------------------------------------------------------------- sculpted base
