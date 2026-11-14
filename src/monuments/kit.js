@@ -76,18 +76,30 @@ export const T = {
   limestone: () => tex('lime', () => ashlar(0xd9c79f, '#8f7f62', 8, 0.1, 3)),
   honey: () => tex('honey', () => ashlar(0xcda873, '#7d6744', 8, 0.12, 5)),
   grey: () => tex('grey', () => ashlar(0xa9a294, '#6a655c', 9, 0.1, 7)),
-  rubble: () => tex('rubble', () => ashlar(0xa89d88, '#5f574a', 22, 0.22, 9)),
+  rubble: () => tex('rubble', () => ashlar(0xa89d88, '#6a6153', 30, 0.2, 9)),
   cobble: () => tex('cobble', () => ashlar(0xb3a58c, '#6b5f4c', 18, 0.14, 15)),
   brick: () => tex('brick', () => canvasTex(256, (g, s) => { // mortared rubble with red brick lacing courses
     g.drawImage(T.rubble().image, 0, 0);
     const r = rng(61);
     for (const y0 of [40, 126, 212]) for (let j = 0; j < 3; j++) { let x = -r() * 20; while (x < s) { const w = 18 + r() * 8; g.fillStyle = `hsl(${12 + r() * 8},${45 + r() * 15}%,${36 + r() * 12}%)`; g.fillRect(x + 1, y0 + j * 7 + 1, w - 2, 5); x += w; } }
   })),
-  karst: () => tex('karst', () => canvasTex(256, (g, s) => { // pale grey limestone cliff: uneven beds, rust and black runoff streaks
-    const r = rng(67); let y = 0;
-    while (y < s) { const h = 10 + r() * 46; g.fillStyle = `hsl(${32 + r() * 10},${8 + r() * 10}%,${62 + r() * 18}%)`; g.fillRect(0, y, s, h); g.fillStyle = 'rgba(60,50,40,0.28)'; g.fillRect(0, y + h - 2, s, 1 + r() * 2); y += h; }
-    for (let i = 0; i < 30; i++) { const x = r() * s, w = 2 + r() * 16, y0 = r() * s * 0.6, len = 30 + r() * 150; const gr = g.createLinearGradient(0, y0, 0, y0 + len); const rust = r() > 0.35; gr.addColorStop(0, rust ? `rgba(170,92,52,${0.15 + r() * 0.3})` : `rgba(40,36,32,${0.15 + r() * 0.25})`); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(x, y0, w, len); }
-    blotches(g, s, 50, 0.22, 71); speckle(g, s, 700, 0.2);
+  karst: () => tex('karst', () => canvasTex(512, (g, s) => { // weathered grey limestone: soft mottling, a few faint beds, tapering runoff streaks, cracks
+    g.fillStyle = '#b9b0a2'; g.fillRect(0, 0, s, s);
+    blotches(g, s, 160, 0.2, 71);
+    const r = rng(67);
+    g.lineWidth = 1.2;
+    for (let i = 0; i < 5; i++) { // faint wavy bedding
+      const y0 = (i + 0.3 + r() * 0.4) * s / 5; g.strokeStyle = `rgba(70,60,50,${0.12 + r() * 0.12})`; g.beginPath();
+      for (let x = 0; x <= s; x += 16) g.lineTo(x, y0 + Math.sin(x * 0.02 + i) * 5 + Math.sin(x * 0.07 + i * 3) * 2);
+      g.stroke();
+    }
+    for (let i = 0; i < 110; i++) { // runoff: soft-edged, tapering downward
+      const x = r() * s, y0 = r() * s * 0.7, len = 60 + r() * 260, w = 2 + r() * 9, rust = r() > 0.3;
+      for (let k = 0; k < 14; k++) { const t = k / 14; g.fillStyle = rust ? `rgba(172,84,44,${(1 - t) * (0.16 + r() * 0.12)})` : `rgba(44,40,36,${(1 - t) * (0.1 + r() * 0.08)})`; g.fillRect(x - w * (1 - t * 0.6) + Math.sin(k) * 0.6, y0 + t * len, w * 2 * (1 - t * 0.6), len / 14 + 1); }
+    }
+    for (let i = 0; i < 9; i++) { g.strokeStyle = `rgba(40,34,28,${0.25 + r() * 0.2})`; g.lineWidth = 0.8 + r(); g.beginPath(); let x = r() * s, y = r() * s; g.moveTo(x, y); for (let k = 0; k < 7; k++) { x += (r() - 0.5) * 14; y += 12 + r() * 22; g.lineTo(x, y); } g.stroke(); }
+    for (let i = 0; i < 9; i++) { const x = r() * s, y = r() * s, rad = 20 + r() * 50, gr = g.createRadialGradient(x, y, 0, x, y, rad); gr.addColorStop(0, `rgba(176,104,62,${0.1 + r() * 0.14})`); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(x - rad, y - rad, rad * 2, rad * 2); }
+    speckle(g, s, 2600, 0.14);
   })),
   concrete: () => tex('concrete', () => canvasTex(256, (g, s) => { // Roman concrete core: brown-grey matrix, small aggregate
     g.fillStyle = '#84766a'; g.fillRect(0, 0, s, s);
@@ -107,7 +119,7 @@ export const T = {
   shaft: () => tex('shaft', () => canvasTex(256, (g, s) => { // column drums: marble with horizontal joints
     g.fillStyle = '#ece2cc'; g.fillRect(0, 0, s, s);
     blotches(g, s, 30, 0.16, 23);
-    for (let j = 0; j < 4; j++) { g.fillStyle = 'rgba(90,75,55,0.5)'; g.fillRect(0, j * s / 4 + 6 * (j % 2), s, 2); }
+    for (let j = 0; j < 4; j++) { g.fillStyle = 'rgba(90,75,55,0.26)'; g.fillRect(0, j * s / 4 + 6 * (j % 2), s, 2); }
     // weather streaks
     const r = rng(29);
     for (let i = 0; i < 26; i++) { g.fillStyle = `rgba(110,90,60,${0.05 + r() * 0.1})`; g.fillRect(r() * s, 0, 2 + r() * 5, s); }
@@ -188,8 +200,8 @@ export const M = {
   get concrete() { return mat('concrete', () => stone('concrete', { bumpScale: 2.5 })); },
   get capital() { return mat('capital', () => std({ map: T.marble(), color: 0xe9dcc3, roughness: 0.7, flatShading: true })); },
   get weathered() { return mat('weathered', () => std({ map: T.marble(), color: 0xdccfb4, roughness: 0.8 })); },
-  get karst() { return mat('karst', () => std({ map: T.karst(), bumpMap: T.karst(), bumpScale: 3, flatShading: true, side: THREE.DoubleSide })); },
-  get relief() { return mat('relief', () => std({ map: T.karst(), color: 0xfff0d8, roughness: 0.85 })); },
+  get karst() { return mat('karst', () => std({ map: T.karst(), bumpMap: T.karst(), bumpScale: 0.8, side: THREE.DoubleSide })); },
+  get relief() { return mat('relief', () => std({ color: 0xd8cdb8, roughness: 0.9 })); },
   get karstFlat() { return mat('karstFlat', () => std({ map: T.karst(), roughness: 0.9 })); },
   get karstDark() { return mat('karstDark', () => std({ map: T.karst(), color: 0x6d6258 })); },
   get brick() { return mat('brick', () => stone('brick')); },
@@ -265,8 +277,8 @@ export function col(g, x, z, h, o = {}) {
   const s = put(grp, colGeo.shaft ||= new THREE.CylinderGeometry(0.86, 1, 1, 16, 1, false), shaft, 0, bh + hs / 2, 0);
   s.scale.set(r, hs, r); s.rotation.y = seed * 1.7;
   if (broken) { // jagged break
-    const t = put(grp, colGeo.brk ||= new THREE.CylinderGeometry(0.5, 0.88, 1, 7), M.weathered, r * 0.15, bh + hs + r * 0.2, 0);
-    t.scale.set(r, r * 0.6, r); t.rotation.set(0.25, seed, 0.2);
+    const t = put(grp, colGeo.brk ||= new THREE.CylinderGeometry(0.8, 0.86, 1, 7), M.weathered, r * 0.04, bh + hs + r * 0.1, 0);
+    t.scale.set(r, r * 0.35, r); t.rotation.set(0.22, seed, 0.16);
   } else if (style === 'cor') {
     put(grp, colGeo.bell ||= new THREE.CylinderGeometry(1.25, 0.88, 1, 12), cap, 0, bh + hs + ch * 0.42, 0).scale.set(r, ch * 0.84, r);
     const ring = put(grp, colGeo.ring ||= new THREE.TorusGeometry(0.95, 0.14, 6, 14), cap, 0, bh + hs + ch * 0.06, 0);
@@ -278,10 +290,10 @@ export function col(g, x, z, h, o = {}) {
     }
     for (let k = 0; k < 4; k++) { // corner volutes under the abacus
       const a = k * Math.PI / 2 + Math.PI / 4;
-      const v = put(grp, colGeo.vol ||= new THREE.TorusGeometry(0.26, 0.11, 5, 8), cap, Math.cos(a) * r * 1.42, bh + hs + ch * 0.72, Math.sin(a) * r * 1.42);
-      v.scale.setScalar(r); v.rotation.y = -a;
+      const v = put(grp, colGeo.vol ||= new THREE.SphereGeometry(0.33, 8, 6), cap, Math.cos(a) * r * 1.38, bh + hs + ch * 0.72, Math.sin(a) * r * 1.38);
+      v.scale.set(r, r, r * 0.45); v.rotation.y = -a + Math.PI / 2;
     }
-    B(grp, cap, r * 2.9, ch * 0.13, r * 2.9, 0, bh + hs + ch * 0.86, 0);
+    B(grp, cap, r * 2.7, ch * 0.12, r * 2.7, 0, bh + hs + ch * 0.86, 0);
     B(grp, cap, r * 2.5, ch * 0.05, r * 2.5, 0, bh + hs + ch * 0.81, 0);
   } else {
     put(grp, colGeo.ech ||= new THREE.CylinderGeometry(1.35, 0.88, 1, 14), cap, 0, bh + hs + ch * 0.3, 0).scale.set(r, ch * 0.6, r);
@@ -368,11 +380,14 @@ export function cavea(g, { r0 = 0.16, r1 = 0.55, rows = 10, arc = Math.PI, stair
   }
   // orchestra
   const o = put(grp, new THREE.CircleGeometry(r0, 32), M.paving, 0, 0.004, 0); o.rotation.x = -Math.PI / 2;
-  // end (analemma) walls
+  // end (analemma) walls: stepped, following the seat profile, so no underside shows
   for (const sgn of [-1, 1]) {
-    const a = Math.PI / 2 + sgn * arc / 2, rm = (r0 + r1) / 2;
-    const wall = B(grp, material, r1 - r0 + dr, rows * dy * 0.55, 0.03, Math.cos(a) * rm, 0, -Math.sin(a) * rm, a);
-    wall.position.x += Math.cos(a - sgn * Math.PI / 2) * 0.015; wall.position.z -= Math.sin(a - sgn * Math.PI / 2) * 0.015;
+    const a = Math.PI / 2 + sgn * arc / 2, sh = new THREE.Shape();
+    sh.moveTo(r0, 0); for (let i = 0; i < rows; i++) { sh.lineTo(r0 + i * dr, (i + 1) * dy + 0.004); sh.lineTo(r0 + (i + 1) * dr, (i + 1) * dy + 0.004); }
+    sh.lineTo(r1 + dr * 0.62, rows * dy + 0.004); sh.lineTo(r1 + dr * 0.62, 0); sh.closePath();
+    const eg = new THREE.ExtrudeGeometry(sh, { depth: 0.024, bevelEnabled: false }); eg.translate(0, 0, -0.012);
+    const eu = eg.attributes.uv; for (let i = 0; i < eu.count; i++) eu.setXY(i, eu.getX(i) / TS, eu.getY(i) / TS);
+    put(grp, eg, material, 0, 0, 0, a);
   }
   grp.userData = { top: rows * dy, dr, dy };
   return grp;
@@ -488,14 +503,14 @@ export function curtain(g, material, pts, h, t = 0.025, o = {}) {
     if (!skip.includes(i)) {
       const len = Math.hypot(x2 - x1, z2 - z1), ry = -Math.atan2(z2 - z1, x2 - x1), cx = (x1 + x2) / 2, cz = (z1 + z2) / 2, y = Math.min(Y(x1, z1), Y(x2, z2), Y(cx, cz)) - 0.01;
       B(g, material, len, h, t, cx, y, cz, ry);
-      const m = Math.max(2, Math.round(len / 0.03));
-      for (let k = 0; k < m; k += 2) { const f = (k + 0.5) / m - 0.5; B(g, material, len / m, 0.012, t, cx + Math.cos(-ry) * f * len, y + h, cz + Math.sin(-ry) * f * len, ry); }
+      const m = Math.max(2, Math.round(len / 0.017));
+      for (let k = 0; k < m; k += 2) { const f = (k + 0.5) / m - 0.5; B(g, material, len / m, 0.007, t, cx + Math.cos(-ry) * f * len, y + h, cz + Math.sin(-ry) * f * len, ry); }
     }
   }
   if (tower) for (const [x, z] of pts) {
     const y = Y(x, z) - 0.01;
     if (tower === 'round') { cyl(g, material, tr, tr * 1.05, th, x, y, z, 12); for (let k = 0; k < 6; k++) { const a = k / 6 * 6.283; B(g, material, tr * 0.55, 0.012, tr * 0.35, x + Math.cos(a) * tr * 0.82, y + th, z + Math.sin(a) * tr * 0.82, -a + Math.PI / 2); } }
-    else { B(g, material, tr * 2, th, tr * 2, x, y, z); for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) B(g, material, tr * 0.6, 0.014, tr * 0.6, x + sx * tr * 0.7, y + th, z + sz * tr * 0.7); }
+    else { B(g, material, tr * 2, th, tr * 2, x, y, z); for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1], [0, -1], [0, 1], [-1, 0], [1, 0]]) B(g, material, tr * 0.36, 0.008, tr * 0.36, x + sx * tr * 0.8, y + th, z + sz * tr * 0.8); }
   }
 }
 // near-vertical rock face (a displaced sheet), facing +z, spanning x0..x1 and y0..y1 at depth z
@@ -523,7 +538,7 @@ export function stork(g, x, y, z) { // nest and bird
 // rock skin lining a sinkhole: follows the contour e(x,z) = level around (cx,cz), stepped into ledges.
 // yTop(x,z) gives the rim height; the skin runs down to yBot. Overhang > 0 leans the top inward (Cehennem).
 export function pitSkin(g, e, cx, cz, yTop, yBot, o = {}) {
-  const { level = 0.97, rmax = 1.2, seg = 96, tiers = 4, step = 0.022, amp = 0.014, material = M.karst, overhang = 0, seed = 1, mask = null } = o;
+  const { level = 0.97, rmax = 1.2, seg = 160, tiers = 4, step = 0.022, amp = 0.014, material = M.karst, overhang = 0, seed = 1, mask = null } = o;
   const pos = [], uv = [], idx = [], rows = tiers * 2 + 1;
   let arc = 0, px = null, pz = null;
   for (let k = 0; k <= seg; k++) {
@@ -533,9 +548,11 @@ export function pitSkin(g, e, cx, cz, yTop, yBot, o = {}) {
     if (px !== null) arc += Math.hypot(x0 - px, z0 - pz); px = x0; pz = z0;
     for (let j = 0; j < rows; j++) {
       const t = j / (rows - 1), tier = Math.floor((j + 1) / 2); // pairs of rows make a vertical face then a ledge
-      const inset = tier * step - overhang * (1 - t) * 2 + (fbm(a * 7 + seed, j * 1.7) - 0.5) * amp * 2;
-      const r = Math.max(0.01, R - inset);
-      pos.push(cx + ca * r, top + (yBot - top) * t, cz + sa * r); uv.push(arc / TS * 0.6, (1 - t) * (top - yBot) / TS * 0.6);
+      let inset = 0; for (let q = 1; q <= tier; q++) inset += step * 2 * Math.max(0, fbm(a * 2.3 + seed + q * 5.1, q * 1.3) - 0.15); // ledges of uneven width that pinch out
+      inset += -overhang * (1 - t) * 2 + (fbm(a * 5 + seed, t * 2.5) - 0.5) * amp * 2 + Math.sin(a * 9 + seed) * amp * 0.5;
+      if (j === 0) inset = -0.014; // lip cap laid over the rim
+      const r = Math.max(0.01, R - inset), yy = j === 0 ? top + 0.002 : top + (yBot - top) * (t + (j % 2 ? (fbm(a * 3 + j, seed) - 0.5) * 0.5 / rows : 0));
+      pos.push(cx + ca * r, yy, cz + sa * r); uv.push(arc / TS * 0.42, (1 - t) * (top - yBot) / TS * 0.42);
     }
   }
   for (let k = 0; k < seg; k++) { if (mask && !mask((k + 0.5) / seg * Math.PI * 2)) continue; for (let j = 0; j < rows - 1; j++) { const a0 = k * rows + j, b0 = a0 + rows; idx.push(a0, a0 + 1, b0, b0, a0 + 1, b0 + 1); } }
@@ -558,10 +575,14 @@ export function railing(g, pts, Y, h = 0.022, material = M.wood) {
     B(g, material, 0.004, h, 0.004, x1, Y(x1, z1), z1); B(g, material, len, 0.003, 0.003, cx, y + h, cz, ry); B(g, material, len, 0.003, 0.003, cx, y + h * 0.55, cz, ry);
   }
 }
-export function lion(g, x, z, y = 0, ry = 0, s = 1) { // crouching fountain lion on a block
+export function lion(g, x, z, y = 0, ry = 0, s = 1) { // crouching fountain lion on a pedestal, basin in front
   const grp = new THREE.Group(); grp.position.set(x, y, z); grp.rotation.y = ry; grp.scale.setScalar(s); g.add(grp);
-  B(grp, M.weathered, 0.03, 0.02, 0.05, 0, 0, 0); B(grp, M.weathered, 0.02, 0.016, 0.038, 0, 0.02, -0.003);
-  B(grp, M.weathered, 0.018, 0.018, 0.016, 0, 0.03, 0.018); B(grp, M.weathered, 0.006, 0.014, 0.012, -0.007, 0.02, 0.02); B(grp, M.weathered, 0.006, 0.014, 0.012, 0.007, 0.02, 0.02);
+  B(grp, M.limestone, 0.034, 0.03, 0.06, 0, 0, 0);
+  put(grp, geoCache.lbody ||= new THREE.SphereGeometry(1, 10, 8), M.weathered, 0, 0.042, -0.006).scale.set(0.012, 0.012, 0.024);
+  put(grp, geoCache.lbody, M.weathered, 0, 0.052, 0.014).scale.set(0.013, 0.014, 0.012); // mane
+  put(grp, geoCache.lbody, M.weathered, 0, 0.056, 0.024).scale.set(0.008, 0.008, 0.009); // head
+  for (const sx of [-1, 1]) B(grp, M.weathered, 0.006, 0.006, 0.018, sx * 0.008, 0.03, 0.02);
+  B(grp, M.limestone, 0.04, 0.014, 0.022, 0, 0, 0.042); B(grp, M.river, 0.03, 0.002, 0.014, 0, 0.014, 0.042);
   return grp;
 }
 

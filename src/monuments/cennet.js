@@ -7,7 +7,7 @@ import { M, B, put, rubble, tree, scatter, person, base, sm, lerp, fbm, ell, aps
 
 export default function cennet(g) {
   const CX = -0.14, CZ = 0.06, HX = 0.52, HZ = -0.5;
-  const cen = (x, z) => ell(x, z, CX, CZ, 0.38, 0.48, -0.12) + (fbm(x * 3 + 3, z * 3) - 0.5) * 0.22;
+  const cen = (x, z) => ell(x, z, CX, CZ, 0.34, 0.52, -0.12) + (fbm(x * 3 + 3, z * 3) - 0.5) * 0.22;
   const ceh = (x, z) => ell(x, z, HX, HZ, 0.2, 0.165, 0.3) + (fbm(x * 6, z * 6) - 0.5) * 0.14;
   const north = (x, z) => sm(-0.12, -0.36, z - CZ); // 1 at the northern (descent) end
   const ground = (x, z) => 0.08 + fbm(x * 2.5, z * 2.5 + 6) * 0.025;
@@ -24,32 +24,34 @@ export default function cennet(g) {
       const e = cen(x, z), f = ceh(x, z);
       c.lerp(P.rock, 0.3);
       if ((e < 1.2 && e >= 1.0) || (f < 1.25 && f >= 1.0)) c.copy(P.rock).lerp(P.sand, 0.3);
-      if (e < 1.0) { c.copy(P.rock).lerp(P.red, 0.25); if (s < 0.9) c.copy(P.grass).multiplyScalar(0.9).lerp(P.earth, north(x, z) * 0.5); }
+      if (e < 1.0) { c.copy(P.rock).lerp(P.red, 0.25); if (s < 0.9) c.copy(P.grass).multiplyScalar(0.5 + fbm(x * 9, z * 9) * 0.35 - sm(0.2, 0.42, z - CZ) * 0.25).lerp(P.earth, north(x, z) * 0.5); }
       if (f < 1.0) c.copy(P.red).multiplyScalar(0.25 + sm(-0.47, 0.05, y) * 0.6);
     },
   });
   // ---- rock walls: stepped pale limestone with rust staining; left open where the talus runs down at the north
-  pitSkin(g, cen, CX, CZ, Y, -0.44, { level: 0.985, tiers: 4, step: 0.02, amp: 0.02, seed: 2, mask: (a) => !(a > 3.75 && a < 5.5) });
+  pitSkin(g, cen, CX, CZ, Y, -0.44, { level: 0.985, tiers: 4, step: 0.022, amp: 0.034, seed: 2, mask: (a) => !(a > 3.75 && a < 5.5) });
+  for (const a0 of [3.72, 5.53]) for (let k = 0; k < 5; k++) { let lo = 0, hi = 0.8; const a = a0 + (k - 2) * 0.03; for (let i = 0; i < 18; i++) { const m = (lo + hi) / 2; if (cen(CX + Math.cos(a) * m, CZ + Math.sin(a) * m) < 0.97) lo = m; else hi = m; } const x = CX + Math.cos(a) * lo, z = CZ + Math.sin(a) * lo; boulder(g, x, Y(x, z) - 0.02 - k * 0.05, z, 0.05 - k * 0.004, k + a0, M.karstFlat); } // rock fins where the cliff dies into the talus
+  for (let k = 0; k < 14; k++) { const a = 0.2 + k * 0.26 + (k > 9 ? 2.2 : 0); let lo = 0, hi = 0.8; for (let i = 0; i < 18; i++) { const m = (lo + hi) / 2; if (cen(CX + Math.cos(a) * m, CZ + Math.sin(a) * m) < 0.9) lo = m; else hi = m; } tree(g, 'shrub', CX + Math.cos(a) * lo, CZ + Math.sin(a) * lo, 1.2, -0.06 - (k % 3) * 0.09, k); } // bushes rooted on the ledges
   pitSkin(g, ceh, HX, HZ, Y, -0.47, { level: 0.99, tiers: 3, step: 0.004, amp: 0.012, seed: 7, overhang: 0.012, material: M.strata }); // Cehennem: red, sheer and undercut
   put(g, new THREE.CircleGeometry(0.2, 24), M.dark, HX, -0.455, HZ).rotation.x = -Math.PI / 2;
   // ---- the cave mouth: a wide low arch in the south wall, with an overhanging lip
-  const mx = CX + 0.03, mz = CZ + 0.4, my = floorY(mx, mz) - 0.01;
-  const mouth = put(g, new THREE.SphereGeometry(1, 18, 12), M.dark, mx, my, mz + 0.03); mouth.scale.set(0.17, 0.11, 0.09);
-  for (let k = 0; k < 9; k++) { const a = Math.PI * (k + 0.5) / 9; boulder(g, mx + Math.cos(a) * 0.18, my + Math.sin(a) * 0.115, mz - 0.01, 0.03 + (k % 3) * 0.008, k + 2, M.karstFlat); }
-  for (let k = 0; k < 5; k++) put(g, new THREE.ConeGeometry(0.008, 0.035, 5), M.karstFlat, mx - 0.08 + k * 0.04, my + 0.085 - Math.abs(k - 2) * 0.015, mz - 0.005).rotation.x = Math.PI; // stalactites
+  const mx = CX + 0.03, mz = CZ + 0.44, my = floorY(mx, mz) - 0.02;
+  const mouth = put(g, new THREE.SphereGeometry(1, 20, 14), M.dark, mx, my, mz + 0.04); mouth.scale.set(0.22, 0.21, 0.12);
+  [[-0.2, 0.1, 0.07], [-0.1, 0.19, 0.08], [0.03, 0.225, 0.09], [0.15, 0.17, 0.075], [0.22, 0.07, 0.06]].forEach(([dx, dy, sz], k) => { const b = boulder(g, mx + dx, my + dy, mz - 0.02, sz, k + 2, M.karstFlat); b.scale.y *= 0.6; }); // overhanging lip of great slabs
+  for (let k = 0; k < 7; k++) put(g, new THREE.ConeGeometry(0.009, 0.04 + (k % 3) * 0.02, 5), M.karstFlat, mx - 0.13 + k * 0.043, my + 0.17 - Math.abs(k - 3) * 0.022, mz - 0.03).rotation.x = Math.PI; // stalactites
   // ---- chapel of the Virgin (built by Paulus, 5th c.) on the floor before the cave: roofless ashlar walls, apse to the east
-  const cx = mx - 0.01, cz = mz - 0.17, cy = Y(cx, cz) - 0.008, cg = new THREE.Group(); cg.position.set(cx, cy, cz); cg.rotation.y = 0.1; g.add(cg);
-  B(cg, M.limestone, 0.2, 0.1, 0.016, 0, 0, -0.065); B(cg, M.limestone, 0.2, 0.075, 0.016, 0, 0, 0.065); B(cg, M.limestone, 0.016, 0.12, 0.146, -0.1, 0, 0);
-  apse(cg, M.limestone, 0.058, 0.11, 0.1, 0, 0, -Math.PI / 2);
-  B(cg, M.dark, 0.004, 0.06, 0.03, -0.109, 0, 0); for (const xx of [-0.045, 0.025]) B(cg, M.dark, 0.02, 0.028, 0.004, xx, 0.05, -0.074);
+  const cx = mx - 0.01, cz = mz - 0.24, cy = Y(cx, cz) - 0.008, cg = new THREE.Group(); cg.position.set(cx, cy, cz); cg.rotation.y = 0.1; g.add(cg);
+  B(cg, M.limestone, 0.2, 0.07, 0.016, 0, 0, -0.065); B(cg, M.limestone, 0.2, 0.085, 0.016, 0, 0, 0.065); B(cg, M.limestone, 0.016, 0.1, 0.146, -0.1, 0, 0);
+  apse(cg, M.limestone, 0.058, 0.09, 0.1, 0, 0, -Math.PI / 2); const conch = put(cg, new THREE.SphereGeometry(0.058, 12, 6, 0, Math.PI, 0, Math.PI / 2), M.limestoneDS, 0.1, 0.09, 0);
+  B(cg, M.dark, 0.004, 0.06, 0.03, -0.109, 0, 0); for (const sd of [-1, 1]) for (const xx of [-0.055, 0.0, 0.055]) { B(cg, M.dark, 0.016, 0.028, 0.004, xx, 0.032, sd * 0.074); } // three arched windows a side
   B(cg, M.paving, 0.19, 0.004, 0.12, 0, 0.001, 0);
   // ---- the stair: switchbacks down the northern talus, then a path across the floor to the chapel door
   const legs = [[-0.02, -0.34], [-0.3, -0.27], [-0.04, -0.2], [-0.28, -0.13], [-0.1, -0.06], [-0.2, 0.04], [cx - 0.14, cz + 0.0]];
   const onPath = (x, z) => legs.some(([px, pz], k) => { if (k === legs.length - 1) return false; const [qx, qz] = legs[k + 1], t = Math.max(0, Math.min(1, ((x - px) * (qx - px) + (z - pz) * (qz - pz)) / ((qx - px) ** 2 + (qz - pz) ** 2))); return Math.hypot(x - px - t * (qx - px), z - pz - t * (qz - pz)) < 0.075; });
   for (let k = 0; k < legs.length - 1; k++) {
-    const [x1, z1] = legs[k], [x2, z2] = legs[k + 1], len = Math.hypot(x2 - x1, z2 - z1), n = Math.round(len / 0.024), ry = -Math.atan2(z2 - z1, x2 - x1);
-    for (let i = 0; i < n; i++) { const t = (i + 0.5) / n, x = x1 + (x2 - x1) * t, z = z1 + (z2 - z1) * t; B(g, M.marble, 0.022, 0.008, 0.05, x, Y(x, z) + 0.003, z, ry); }
-    B(g, M.limestone, 0.05, 0.014, 0.06, x2, Y(x2, z2) + 0.002, z2, ry); // landing
+    const [x1, z1] = legs[k], [x2, z2] = legs[k + 1], len = Math.hypot(x2 - x1, z2 - z1), n = Math.round(len / 0.015), ry = -Math.atan2(z2 - z1, x2 - x1);
+    for (let i = 0; i < n; i++) { const t = (i + 0.5) / n, x = x1 + (x2 - x1) * t, z = z1 + (z2 - z1) * t; B(g, M.limestone, 0.013, 0.006, 0.034, x, Y(x, z) + 0.001, z, ry); }
+    B(g, M.limestone, 0.036, 0.008, 0.04, x2, Y(x2, z2) + 0.001, z2, ry); // landing
   }
   railing(g, [[0.06, -0.42], [0.0, -0.37], [-0.02, -0.34]], Y, 0.02);
   // ---- Cehennem: continuous railing round the lip and a cantilevered viewing deck
@@ -60,13 +62,13 @@ export default function cennet(g) {
   // ---- temple of Zeus on the southern rim, re-used as a church: polygonal walls of uneven height, apse added at the east
   const tx = CX + 0.06, tz = CZ + 0.66, ty = Y(tx, tz) - 0.008, tg = new THREE.Group(); tg.position.set(tx, ty, tz); tg.rotation.y = 0.1; g.add(tg);
   B(tg, M.limestone, 0.34, 0.014, 0.19, 0, 0, 0);
-  [[-0.11, 0.13], [0.0, 0.1], [0.11, 0.115]].forEach(([x, hh]) => B(tg, M.grey, 0.11, hh, 0.02, x, 0.014, 0.078)); // south wall, best preserved
-  [[-0.1, 0.06], [0.03, 0.04], [0.12, 0.07]].forEach(([x, hh]) => B(tg, M.grey, 0.1, hh, 0.02, x, 0.014, -0.078));
-  B(tg, M.grey, 0.02, 0.11, 0.176, -0.16, 0.014, 0); apse(tg, M.rubble, 0.062, 0.1, 0.16, 0.014, 0, -Math.PI / 2);
+  [[-0.11, 0.13], [0.0, 0.1], [0.11, 0.115]].forEach(([x, hh]) => B(tg, M.limestone, 0.11, hh, 0.02, x, 0.014, 0.078)); // south wall, best preserved
+  [[-0.1, 0.06], [0.03, 0.04], [0.12, 0.07]].forEach(([x, hh]) => B(tg, M.limestone, 0.1, hh, 0.02, x, 0.014, -0.078));
+  B(tg, M.limestone, 0.02, 0.11, 0.176, -0.16, 0.014, 0); apse(tg, M.rubble, 0.062, 0.1, 0.16, 0.014, 0, -Math.PI / 2);
   B(tg, M.marble, 0.02, 0.12, 0.028, -0.16, 0.014, -0.1); // the anta carrying the long list of names
   B(tg, M.dark, 0.004, 0.05, 0.03, -0.171, 0.014, 0.02);
   const drum = put(tg, new THREE.CylinderGeometry(0.012, 0.012, 0.04, 10), M.weathered, 0.02, 0.03, 0.0); drum.rotation.z = Math.PI / 2;
-  rubble(tg, 0.05, -0.15, 6, 0.2, 0.02, M.grey, 4);
+  rubble(tg, 0.05, 0.16, 6, 0.2, 0.02, M.limestone, 4);
   // ---- saffron crocuses in drifts on the rim (Strabo: "the best saffron grows here")
   for (const [dx, dz, n] of [[0.42, 0.52, 12], [0.6, 0.3, 9], [-0.62, 0.5, 8]]) for (let k = 0; k < n; k++) {
     const x = dx + Math.sin(k * 2.4) * 0.07 * Math.sqrt(k / n), z = dz + Math.cos(k * 2.4) * 0.05 * Math.sqrt(k / n), y = Y(x, z);
@@ -76,7 +78,7 @@ export default function cennet(g) {
   }
   for (let k = 0; k < 14; k++) { const a = k * 0.83 + Math.sin(k) * 0.3, r = 0.62 + (k % 4) * 0.07, x = Math.cos(a) * r, z = Math.sin(a) * r; if (cen(x, z) > 1.15 && ceh(x, z) > 1.3 && Math.hypot(x, z) < 0.93) boulder(g, x, Y(x, z) + 0.004, z, 0.015 + (k % 4) * 0.007, k + 3, M.karstFlat); }
   // ---- a low, dense canopy on the floor (kept off the stair, chapel and cave mouth); maquis on the rim; ledge shrubs
-  scatter(g, ['oak', 'shrub', 'olive', 'shrub'], 26, [-0.42, -0.12, 0.16, 0.34], Y, 7, 0.45, 0.7, (x, z) => cen(x, z) < 0.62 && !onPath(x, z) && Math.hypot(x - cx, z - cz) > 0.16 && Math.hypot(x - mx, z - mz) > 0.18);
+  scatter(g, ['oak', 'shrub', 'olive', 'oak', 'shrub'], 44, [-0.44, -0.14, 0.18, 0.4], Y, 7, 0.45, 0.75, (x, z) => cen(x, z) < 0.62 && !onPath(x, z) && Math.hypot(x - cx, z - cz) > 0.16 && !(Math.abs(x - mx) < 0.16 && z > cz));
   scatter(g, ['shrub', 'olive', 'shrub', 'oak'], 30, [-0.95, -0.95, 0.95, 0.95], Y, 13, 0.5, 0.8, (x, z) => cen(x, z) > 1.25 && ceh(x, z) > 1.45 && !(Math.abs(x - tx) < 0.24 && Math.abs(z - tz) < 0.16) && !(z < -0.3 && x > 0.1 && x < 0.5));
   tree(g, 'pine', -0.62, -0.5, 1.1, Y(-0.62, -0.5), 3); tree(g, 'pine', 0.78, 0.12, 1.0, Y(0.78, 0.12), 5);
   for (const [x, z, i] of [[-0.16, -0.29, 0], [-0.17, -0.16, 1], [-0.15, -0.02, 2], [cx - 0.14, cz + 0.02, 3], [HX - 0.2, HZ + 0.04, 4], [HX - 0.16, HZ + 0.06, 5], [tx - 0.2, tz - 0.05, 1], [0.04, -0.4, 0]]) person(g, x, z, Y(x, z) + 0.008, i, 0.9);

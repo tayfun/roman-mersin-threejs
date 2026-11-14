@@ -4,20 +4,25 @@ import * as THREE from 'three';
 import { M, B, put, col, beam, rubble, tree, person, base, sm, lerp, fbm, ell, galley, cyl, house, railing } from './kit.js';
 
 export default function soli(g) {
-  const basin = (x, z) => ell(x, z, 0, 0.7, 0.3, 0.2);
-  const tell = (x, z) => ell(x, z, -0.56, 0.2, 0.2, 0.17, 0.3);
+  const basin = (x, z) => ell(x, z, 0, 0.7, 0.44, 0.23);
+  const tell = (x, z) => ell(x, z, -0.6, 0.12, 0.27, 0.22, 0.3);
+  const TR = [[-0.62, 0.08, 0.1, 0.08], [-0.52, 0.18, 0.07, 0.06], [-0.7, 0.2, 0.06, 0.07]]; // excavation trenches on the flat top
+  const inTrench = (x, z) => TR.some(([tx, tz, w, d]) => Math.abs(x - tx) < w / 2 && Math.abs(z - tz) < d / 2);
   const Y = base(g, {
     water: true,
     h: (x, z) => {
       let y = 0.04 + fbm(x * 2 + 5, z * 2) * 0.018 - sm(0.5, 0.74, z + fbm(x * 3, 1) * 0.06) * 0.17;
       y = lerp(-0.06, y, sm(0.8, 1.08, basin(x, z))); // harbour basin
       const t = tell(x, z); // Soli Höyük: a steep-sided, flat-topped mound
-      if (t < 1.2) y = Math.max(y, 0.04 + 0.14 * (1 - sm(0.55, 1.15, t)) + fbm(x * 9, z * 9) * 0.008);
+      if (t < 1.2) y = Math.max(y, 0.04 + 0.17 * (1 - sm(0.62, 1.12, t)) + fbm(x * 9, z * 9) * 0.006);
+      if (inTrench(x, z)) y -= 0.032; // real pits
+      if (t < 1.1 && x > -0.44 && Math.abs(z - 0.1) < 0.035) y = Math.min(y, 0.06 + Math.floor((-0.36 - x) / 0.03 + 4) * 0.028); // a stepped sounding cut down the east flank
       return y;
     },
     tint: (x, z, y, s, c, P) => {
       if (Math.abs(x) < 0.24 && z < 0.5 && y > 0.01) c.lerp(P.earth, 0.75);
-      const t = tell(x, z); if (t < 1.15 && t > 0.5) c.lerp(P.earth, 0.6);
+      const t = tell(x, z); if (t < 1.15 && t > 0.5) c.lerp(P.earth, 0.6); if (inTrench(x, z) || (t < 1.1 && x > -0.44 && Math.abs(z - 0.1) < 0.035)) c.copy(P.earth).multiplyScalar(0.8);
+      if (z > 0.38 && y > 0 && y < 0.05) c.lerp(P.sand, 0.8); // beach
       if (Math.abs(x - 0.52 - 0.05 * Math.sin(z * 4)) < 0.016 && z < 0.45) c.lerp(P.sand, 0.7); // farm track
       if (basin(x, z) < 1 && y < 0) c.lerp(new THREE.Color(0x4fae9e), 0.35); // greener, shallower harbour water
     },
@@ -44,8 +49,15 @@ export default function soli(g) {
         const by = yc + R * 0.7 + (H - R * 3) * 0.56 + R * 0.5, bx = s * X - s * R * 1.35;
         B(g, M.weathered, 0.012, 0.016, 0.01, bx, by, z); put(g, new THREE.SphereGeometry(0.0065, 8, 6), M.weathered, bx, by + 0.022, z);
       }
-      if (!up && i % 3 === 0) { // the fallen shaft lies where it toppled, outward from the street
-        for (let k = 0; k < 4; k++) { const d = put(g, new THREE.CylinderGeometry(R * 0.95, R * 0.95, 0.045, 12), M.weathered, s * (X + 0.16 + k * 0.052), Y(s * (X + 0.2), z) + R * 0.9, z + (k % 2) * 0.008 - 0.004); d.rotation.z = Math.PI / 2; d.rotation.y = 0.1 * (k - 1.5); }
+      if (!up && i % 3 === 0) { // the fallen shaft lies where it toppled, outward from the street, its drums parted
+        const n = 2 + (i * 7 + (s > 0 ? 1 : 0)) % 4, fa = ((i * 13) % 9 - 4) * 0.1;
+        for (let k = 0; k < n; k++) {
+          const dist = X + 0.15 + k * (0.05 + (k * i % 3) * 0.008), px = s * dist, pz = z + Math.sin(fa) * (dist - X) + ((k * 5 + i) % 3 - 1) * 0.008;
+          if (Math.hypot(px, pz) > 0.9 || tell(px, pz) < 1.25) continue;
+          const d = put(g, new THREE.CylinderGeometry(R * 0.95, R * 0.95, 0.044, 12), M.shaft, px, Y(px, pz) + R * 0.9, pz);
+          if (k === n - 1 && i % 2) { d.position.y = Y(px, pz) + 0.022; } else { d.rotation.z = Math.PI / 2; d.rotation.y = fa * s + 0.12 * (k - 1.5); } // the odd drum stands on end
+        }
+        if (i % 2 === 0) { const c = put(g, new THREE.CylinderGeometry(R * 1.3, R * 0.9, R * 2.2, 10), M.capital, s * (X + 0.15 + n * 0.056), Y(s * (X + 0.3), z) + R, z + Math.sin(fa) * 0.2); c.rotation.z = Math.PI / 2 * s; }
       }
     }
   }
@@ -55,40 +67,41 @@ export default function soli(g) {
   const fallenCap = put(g, new THREE.CylinderGeometry(R * 1.3, R * 0.9, R * 2.2, 10), M.capital, X - 0.06, gy + 0.02, z0 + 7.3 * dz); fallenCap.rotation.set(1.2, 0.4, 0);
   rubble(g, -X - 0.05, z0 + 15 * dz, 4, 0.08, 0.016, M.weathered, 4, Y); rubble(g, X + 0.06, z0 + 10.5 * dz, 5, 0.1, 0.016, M.weathered, 6, Y);
   // landing steps from the street end down to the quay
-  for (let k = 0; k < 4; k++) B(g, M.limestone, 0.32 - k * 0.02, 0.012, 0.03, 0, gy - 0.012 - k * 0.012, z0 + L - 0.01 + k * 0.03);
+  for (let k = 0; k < 4; k++) B(g, M.limestone, 0.2 - k * 0.012, 0.012, 0.026, 0, gy - 0.012 - k * 0.012, z0 + L - 0.012 + k * 0.026);
   // harbour: two broad moles springing from the shore and curving in to an entrance; the east one largely lost
-  const quayZ = 0.53;
-  B(g, M.limestone, 0.62, 0.035, 0.035, 0, -0.012, quayZ); B(g, M.concrete, 0.62, 0.006, 0.05, 0, 0.022, quayZ);
+  const quayZ = 0.52;
+  for (let k = 0; k < 9; k++) { const a = Math.PI * (k + 0.5) / 9, x = Math.cos(a) * 0.44, z = quayZ + 0.065 - Math.sin(a) * 0.065; B(g, M.limestone, 0.105, 0.04, 0.04, x, -0.016, z, a - Math.PI / 2); B(g, M.concrete, 0.105, 0.006, 0.05, x, 0.022, z, a - Math.PI / 2); } // quay rounding the landward end
+  const mole = (s, t) => [s * (0.44 + 0.015 * Math.sin(t * 2.4) - 0.3 * sm(0.5, 1, t)), quayZ + 0.06 + t * 0.34 - 0.06 * sm(0.62, 1, t)];
   for (const s of [-1, 1]) {
-    const n = 11;
+    const n = 18;
     for (let k = 0; k < n; k++) {
-      const t = k / (n - 1), a = t * 1.9, x = s * (0.29 + 0.02 * Math.sin(a) - 0.2 * sm(0.45, 1, t)), z = quayZ + 0.02 + t * 0.36 - 0.05 * sm(0.6, 1, t);
-      const t2 = (k + 1) / (n - 1), x2 = s * (0.29 + 0.02 * Math.sin(t2 * 1.9) - 0.2 * sm(0.45, 1, t2)), z2 = quayZ + 0.02 + t2 * 0.36 - 0.05 * sm(0.6, 1, t2);
-      const lost = s > 0 && (k === 4 || k === 5 || k === 8), ry = -Math.atan2(z2 - z, x2 - x);
-      if (Math.hypot(x, z) > 0.94) continue;
-      B(g, M.limestone, 0.05, lost ? 0.012 : 0.04, 0.056, x, lost ? -0.03 : -0.018, z, ry);
-      if (!lost) B(g, M.concrete, 0.052, 0.006, 0.05, x, 0.022, z, ry);
+      const [x, z] = mole(s, k / (n - 1)), [x2, z2] = mole(s, (k + 1) / (n - 1)), ry = -Math.atan2(z2 - z, x2 - x), lost = s > 0 && (k > 5 && k < 10 || k === 13 || k === 14);
+      if (Math.hypot(x, z) > 0.945) continue;
+      if (lost) { if (k % 2) put(g, new THREE.DodecahedronGeometry(0.022, 0), M.concrete, x + 0.01 * Math.sin(k), -0.012, z); continue; } // only tumbled rubble at the waterline
+      B(g, M.limestone, 0.05, 0.04, 0.07, x, -0.018, z, ry); B(g, M.concrete, 0.052, 0.006, 0.062, x, 0.022, z, ry);
     }
   }
-  cyl(g, M.limestone, 0.022, 0.028, 0.07, -0.085, 0.022, 0.86, 10); cyl(g, M.capital, 0.014, 0.018, 0.02, -0.085, 0.092, 0.86, 8); // lighthouse stub on the west mole head
-  const ship = galley(M.sail, 0.11); ship.position.set(0.06, 0.0, 0.7); ship.rotation.y = 1.2; g.add(ship);
-  const boat = galley(M.white, 0.07); boat.position.set(-0.12, 0.0, 0.64); boat.rotation.y = 0.2; g.add(boat);
-  // the mound's excavation: stepped trenches with pale section walls
-  for (const [x, z, w, d, r] of [[-0.58, 0.16, 0.1, 0.08, 0.3], [-0.5, 0.25, 0.07, 0.06, 0.3], [-0.66, 0.26, 0.05, 0.07, 0.3]]) {
-    const y = Y(x, z);
-    B(g, M.dark, w, 0.003, d, x, y - 0.001, z, r);
-    for (const [dx, dzz, ww, dd] of [[0, -d / 2, w + 0.012, 0.008], [0, d / 2, w + 0.012, 0.008], [-w / 2, 0, 0.008, d], [w / 2, 0, 0.008, d]]) { const c = Math.cos(-r), sn = Math.sin(-r); B(g, M.plaster, ww, 0.01, dd, x + dx * c - dzz * sn, y - 0.004, z + dx * sn + dzz * c, r); }
-  }
-  railing(g, [[-0.42, 0.06], [-0.36, 0.2], [-0.4, 0.34]], Y, 0.018);
+  { const [lx, lz] = mole(-1, 1); cyl(g, M.limestone, 0.022, 0.028, 0.06, lx, 0.022, lz, 10); } // footing of the harbour light on the west mole head (a reconstruction)
+  const ship = galley(M.sail, 0.12); ship.position.set(0.1, 0.0, 0.72); ship.rotation.y = 0.5; g.add(ship);
+  const boat = galley(M.white, 0.075); boat.position.set(-0.2, 0.0, 0.66); boat.rotation.y = 0.2; g.add(boat);
+  // the mound's excavation: spoil heap, a shade canopy over one trench, a ladder
+  put(g, new THREE.ConeGeometry(0.035, 0.03, 8), M.plaster, -0.5, Y(-0.5, 0.05) + 0.012, 0.05);
+  for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) B(g, M.wood, 0.004, 0.05, 0.004, -0.62 + dx * 0.05, Y(-0.62, 0.08) + 0.03, 0.08 + dz * 0.04);
+  B(g, M.white, 0.11, 0.003, 0.09, -0.62, Y(-0.62, 0.08) + 0.08, 0.08);
+  B(g, M.wood, 0.006, 0.05, 0.003, -0.52, Y(-0.52, 0.18), 0.2).rotation.x = 0.3;
+  railing(g, [[-0.32, -0.06], [-0.3, 0.1], [-0.33, 0.26]], Y, 0.018);
   // citrus groves either side (the site lies among orchards); cypress and palm accents; Mezitli's houses at the back
   for (let i = 0; i < 5; i++) for (let j = 0; j < 6; j++) {
-    const x = -0.86 + i * 0.1, z = -0.62 + j * 0.105; if (Math.hypot(x, z) < 0.9 && tell(x, z) > 1.5) tree(g, 'citrus', x, z, 1.25, Y(x, z), i * 7 + j);
+    const x = -0.86 + i * 0.1, z = -0.66 + j * 0.105; if (Math.hypot(x, z) < 0.9 && tell(x, z) > 1.35) tree(g, 'citrus', x, z, 1.25, Y(x, z), i * 7 + j);
   }
   for (let i = 0; i < 4; i++) for (let j = 0; j < 7; j++) {
     const x = 0.62 + i * 0.095, z = -0.5 + j * 0.105; if (Math.hypot(x, z) < 0.9) tree(g, 'citrus', x, z, 1.25, Y(x, z), i * 5 + j * 3);
   }
-  for (const [x, z] of [[-0.42, -0.74], [0.42, -0.72], [0.44, 0.36], [-0.34, 0.44], [0.47, -0.2]]) tree(g, 'cypress', x, z, 1.2, Y(x, z), x * 9);
+  for (const [x, z] of [[-0.36, -0.86], [0.36, -0.86], [0.5, 0.36], [0.47, -0.2]]) tree(g, 'cypress', x, z, 1.2, Y(x, z), x * 9);
   for (const [x, z] of [[0.42, 0.47], [0.72, 0.36]]) tree(g, 'palm', x, z, 1.1, Y(x, z), z * 5);
-  for (const [x, z, r] of [[-0.24, -0.9, 0], [0.0, -0.94, 0], [0.26, -0.9, 0]]) { B(g, M.plaster, 0.16, 0.07 + Math.abs(x) * 0.08, 0.07, x, Y(x, z) - 0.004, z, r); for (let k = 0; k < 3; k++) B(g, M.dark, 0.022, 0.014, 0.003, x - 0.045 + k * 0.045, Y(x, z) + 0.03, z + 0.036); }
-  for (const [x, z, i] of [[0.02, -0.62, 0], [-0.03, -0.57, 1], [0.05, -0.1, 2], [0.0, 0.3, 3], [-0.04, 0.34, 4], [-0.56, 0.2, 5], [0.1, 0.5, 1]]) person(g, x, z, Y(x, z) + (Math.abs(x) < 0.12 && z < 0.48 ? 0.008 : 0.002), i);
+  house(g, -0.5, -0.76, Y(-0.5, -0.76) - 0.004, 0.08, 0.09, 0.05, 0.2); house(g, 0.5, -0.78, Y(0.5, -0.78) - 0.004, 0.075, 0.085, 0.048, -0.3);
+  rubble(g, 0.0, z0 - 0.045, 6, 0.3, 0.02, M.limestone, 11, Y);
+  // scrub and loose blocks so the ground is not bare
+  for (let k = 0; k < 22; k++) { const x = -0.9 + ((k * 0.377) % 1) * 1.8, z = -0.3 + ((k * 0.619) % 1) * 0.72; if (Math.hypot(x, z) < 0.9 && Math.abs(x) > 0.3 && tell(x, z) > 1.3 && Y(x, z) > 0.03 && !(x > 0.56 && z < 0.2) && !(x < -0.36 && z < 0.0)) tree(g, k % 3 ? 'shrub' : 'reed', x, z, 0.9, Y(x, z), k); }
+  for (const [x, z, i] of [[0.02, -0.62, 0], [-0.03, -0.57, 1], [0.05, -0.1, 2], [0.0, 0.3, 3], [-0.04, 0.34, 4], [-0.6, 0.0, 5], [0.06, 0.5, 1]]) person(g, x, z, Y(x, z) + (Math.abs(x) < 0.12 && z < 0.48 ? 0.008 : 0.002), i);
 }

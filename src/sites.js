@@ -132,7 +132,7 @@ export const SITES = [
     era: ['Probably 2nd c. AD'],
     body: [
       'High on the cliff of the Şeytan Deresi ("Devil’s Creek") gorge, about 7 km inland from Kızkalesi, nine niches hold eighteen carved figures: eleven men, four women, two children and an ibex. Some recline as at a funeral banquet, others are shown as soldiers; two Roman eagles sit on a pediment.',
-      'There is no inscription that says who they were. They are usually read as funerary memorials to local notables.',
+      'Little is recorded about who they were. They are usually read as funerary memorials to local notables, carved over several generations.',
     ],
     look: [
       'The banquet scenes — the dead reclining on couches, family beside them',
