@@ -38,6 +38,10 @@ export class Sound {
     if (this.ctx) { this.fade(0, 0.3); setTimeout(() => { if (!this.enabled) this.ctx.suspend(); }, 400); }
   }
 
+  // hold everything (voice included) while the page is not in front; resume continues mid-sentence
+  pause() { if (this.ctx && this.enabled) this.ctx.suspend(); }
+  resume() { if (this.ctx && this.enabled) this.ctx.resume(); }
+
   fade(to, secs) {
     const g = this.master.gain, t = this.ctx.currentTime;
     g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(to, t + secs);

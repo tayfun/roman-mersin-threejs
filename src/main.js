@@ -81,7 +81,7 @@ const sky = new THREE.Mesh(
 scene.add(sky);
 
 // ---------- state ----------
-const state = { selected: -1, hovered: -1, tour: false, dusk: 0, duskTarget: 0, roads: true, started: false };
+const state = { paused: false, selected: -1, hovered: -1, tour: false, dusk: 0, duskTarget: 0, roads: true, started: false };
 const sound = new Sound();
 const siteObjs = [];
 let sampleH = () => 0;
@@ -416,8 +416,13 @@ function goHome() {
 }
 
 // ---------- narration ----------
-let captionTimer = 0, narrateToken = 0, current = null;
-function hideCaption() { $('#caption').hidden = true; clearTimeout(captionTimer); current = null; }
+let narrateToken = 0, current = null;
+// one pending step (caption timeout or tour advance) that can be held while the page is in the background
+let pending = null;
+const cancelLater = () => { if (pending) { clearTimeout(pending.id); pending = null; } };
+const arm = () => { pending.at = performance.now(); pending.id = setTimeout(() => { const fn = pending.fn; pending = null; fn(); }, pending.ms); };
+const later = (fn, ms) => { cancelLater(); pending = { fn, ms }; if (!state.paused) arm(); };
+function hideCaption() { $('#caption').hidden = true; cancelLater(); current = null; }
 // say the current line again — after the language or the sound setting changed under it
 function renarrate() { if (current) narrate(current.key, current.onEnd); }
 async function narrate(key, onEnd) {
@@ -429,7 +434,7 @@ async function narrate(key, onEnd) {
   if (mine !== narrateToken) return; // superseded by a newer narration
   $('#caption').textContent = text; $('#caption').hidden = false;
   // without sound (off, or the clip failed to load) the script is shown as a caption for a reading-time interval, and the tour still advances
-  if (!dur) captionTimer = setTimeout(() => { hideCaption(); onEnd && onEnd(); }, 3500 + text.length * 45);
+  if (!dur) later(() => { hideCaption(); onEnd && onEnd(); }, 3500 + text.length * 45);
 }
 
 // ---------- tour ----------
@@ -443,11 +448,11 @@ function tourStep(i) {
   select(i, { fromTour: true });
   // select() already started narration; re-arm it with an advance callback
   narrate(SITES[i].id, () => {
-    captionTimer = setTimeout(() => { if (state.tour) (i + 1 < SITES.length ? tourStep(i + 1) : (stopTour(), goHome())); }, 2500);
+    later(() => { if (state.tour) (i + 1 < SITES.length ? tourStep(i + 1) : (stopTour(), goHome())); }, 2500);
   });
 }
 function stopTour() {
-  state.tour = false; clearTimeout(captionTimer); setTourButton();
+  state.tour = false; cancelLater(); setTourButton();
 }
 
 // ---------- UI ----------
@@ -617,9 +622,26 @@ function adaptQuality(dt) {
 
 // ---------- frame ----------
 const clock = new THREE.Clock();
+
+// In a background or unfocused tab nothing is drawn, played or advanced; everything picks up where it left off.
+function setPaused(p) {
+  if (p === state.paused || !state.ready) return;
+  state.paused = p;
+  if (p) {
+    renderer.setAnimationLoop(null); clock.stop(); sound.pause();
+    if (pending) { clearTimeout(pending.id); pending.ms = Math.max(0, pending.ms - (performance.now() - pending.at)); }
+  } else {
+    clock.start(); renderer.setAnimationLoop(frame); sound.resume();
+    if (pending) arm();
+  }
+}
+const checkPaused = () => setPaused(document.hidden || !document.hasFocus());
+window.__audioState = () => (sound.ctx ? sound.ctx.state : 'none');
+document.addEventListener('visibilitychange', checkPaused); addEventListener('blur', checkPaused); addEventListener('focus', checkPaused);
 const v = new THREE.Vector3();
 function frame() {
   const rawDt = clock.getDelta(), dt = Math.min(rawDt, 0.05), t = clock.elapsedTime;
+  window.__frames = (window.__frames || 0) + 1; // lets tests see that the loop is running
   adaptQuality(rawDt);
 
   if (flight) {
