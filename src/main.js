@@ -387,9 +387,7 @@ function select(i, { instant = false, fromTour = false } = {}) {
   const view = o.site.view || {};
   const az = view.az !== undefined ? view.az : THREE.MathUtils.clamp(cur, -0.7, 0.7);
   const dist = view.dist || 4.6, polar = THREE.MathUtils.degToRad(view.polar || 60);
-  const narrow = innerWidth < 760;
   const target = o.pos.clone(); target.y += 0.7;
-  if (narrow) target.y -= 0.9; // leave room for the bottom sheet
   const pos = target.clone().add(new THREE.Vector3(Math.sin(az) * Math.sin(polar), Math.cos(polar), Math.cos(az) * Math.sin(polar)).multiplyScalar(dist));
   sound.play('whoosh', 0.35);
   flyTo(target, pos, instant ? 0.01 : 2.6, () => { controls.autoRotate = !reduceMotion; sound.play('chime', 0.3); });
@@ -460,7 +458,6 @@ function renderPanel(i, keepScroll = false) {
   const s = loc(SITES[i]), t = T();
   const esc = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;');
   $('#panel-body').innerHTML = `
-    <div class="eyebrow">${t.siteOf(i + 1, SITES.length)}</div>
     <h2>${esc(s.name)}</h2>
     <div class="modern">${t.today}: ${esc(s.modern)}</div>
     <button class="listen" id="listen">${t.listen}</button>
@@ -595,10 +592,13 @@ function buildUI() {
   addEventListener('resize', resize);
 }
 
-// with the side panel open, shift the projection so the selected diorama sits in the free space left of it
+// with the panel open, shift the projection so the selected diorama sits in the free space:
+// left of the side panel on wide screens, above the bottom sheet (a third of the height) on phones
 function applyViewOffset() {
-  const w = innerWidth, h = innerHeight, open = !$('#panel').hidden && w > 760;
-  if (open) camera.setViewOffset(w, h, Math.min(213, w * 0.17), 0, w, h); else camera.clearViewOffset();
+  const w = innerWidth, h = innerHeight, open = !$('#panel').hidden;
+  if (open && w > 760) camera.setViewOffset(w, h, Math.min(213, w * 0.17), 0, w, h);
+  else if (open) camera.setViewOffset(w, h, 0, $('#panel').offsetHeight / 2, w, h);
+  else camera.clearViewOffset();
   camera.updateProjectionMatrix();
 }
 
