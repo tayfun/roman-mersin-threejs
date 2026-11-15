@@ -436,7 +436,7 @@ export function tree(g, kind, x, z, s = 1, y = 0, seed = 1) {
     const a = new THREE.Vector3(x0, y0, z0), b = new THREE.Vector3(x1, y1, z1), m = put(grp, trunkGeo, M.trunk, (x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
     m.scale.set(r, a.distanceTo(b), r); m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.sub(a).normalize()); return m;
   };
-  const blob = (material, dx, dy, dz, r, flat = 0.75, k = 0) => { const m = put(grp, lumpy('blob' + ((v + k) % 3), new THREE.IcosahedronGeometry(1, 1), 0.16, (v + k) % 3), material, dx, dy, dz); m.scale.set(r, r * flat, r); m.rotation.y = k * 1.7 + seed; return m; };
+  const blob = (material, dx, dy, dz, r, flat = 0.75, k = 0) => { const m = put(grp, lumpy('blob' + ((v + k) % 3), new THREE.DodecahedronGeometry(1, 0), 0.2, (v + k) % 3), material, dx, dy, dz); m.scale.set(r, r * flat, r); m.rotation.y = k * 1.7 + seed; return m; };
   if (kind === 'cypress') { // Cupressus sempervirens: a dark flame-shaped column, sometimes with a split tip
     trunk(0.05, 0.009);
     const c = put(grp, lumpy('cyp' + v, new THREE.LatheGeometry([[0.012, 0.03], [0.027, 0.07], [0.034, 0.14], [0.031, 0.22], [0.021, 0.3], [0.008, 0.355], [0, 0.375]].map(([r, yy]) => new THREE.Vector2(r, yy)), 7), 0.14, v), M.cypress);

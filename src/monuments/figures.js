@@ -39,7 +39,7 @@ const DEPTH = 0.74; // bodies are deeper side to side than front to back
 const onBody = (th, y, r) => [r * Math.sin(th), y, r * Math.cos(th) * DEPTH];
 
 // a cloth shell wrapped round the body: th runs from the front (0) towards the figure's left (+), top/bot/rad are functions
-function drape(key, { t0 = -PI, t1 = PI, top, bot, rad, n = 30, m = 8 }) {
+function drape(key, { t0 = -PI, t1 = PI, top, bot, rad, n = 20, m = 8 }) {
   return G(key, () => {
     const pos = [], idx = [];
     for (let i = 0; i <= n; i++) {
@@ -59,7 +59,7 @@ function roll(key, f, t0, t1, r, closed = false) {
   return G(key, () => {
     const pts = [];
     for (let i = 0; i < (closed ? 28 : 29); i++) { const th = lerp(t0, t1, i / 28); pts.push(new THREE.Vector3(...onBody(th, ...f(th)))); }
-    return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, closed), 40, r, 6, closed);
+    return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, closed), 28, r, 4, closed);
   });
 }
 const pleats = (th, y, hem, depth, count = 11) => 1 + depth * Math.sin(th * count) * clamp01((0.62 - y) / (0.62 - hem));
@@ -70,12 +70,12 @@ export function person(g, x, z, y = 0, i = 0, s = 1) {
   let par = grp;
   const P = (geo, material, px = 0, py = 0, pz = 0) => put(par, geo, material, px, py, pz);
   const up = (fn) => { const hg = new THREE.Group(); hg.position.y = 0.034; grp.add(hg); par = hg; fn(); par = grp; }; // everything on the head sits on a raised neck
-  const sph = G('sph', () => new THREE.SphereGeometry(1, 12, 9));
+  const sph = G('sph', () => new THREE.SphereGeometry(1, 8, 6));
   const skin = F.skin(Math.floor(h3 * 3));
   const ball = (material, px, py, pz, sx, sy = sx, sz = sx) => { const m = P(sph, material, px, py, pz); m.scale.set(sx, sy, sz); return m; };
   const limb = (material, r, a, b) => {
     const va = new THREE.Vector3(...a), vb = new THREE.Vector3(...b), len = va.distanceTo(vb);
-    const m = P(G('limb' + r, () => new THREE.CapsuleGeometry(r, 1, 3, 7)), material, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2);
+    const m = P(G('limb' + r, () => new THREE.CapsuleGeometry(r, 1, 2, 6)), material, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2);
     m.scale.y = len / (1 + 2 * r); m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), vb.sub(va).normalize());
   };
   // shoulder → elbow in a sleeve (or bare), elbow → wrist bare, and a hand; sd = +1 is the figure's left
@@ -86,7 +86,7 @@ export function person(g, x, z, y = 0, i = 0, s = 1) {
   };
 
   // ---- garments
-  const longTunic = (material, depth = 0.05, hem = 0.035) => P(drape('long' + depth + hem, { top: () => 0.862, bot: () => hem, rad: (th, yy) => prof(yy) * pleats(th, yy, hem, depth), m: 12 }), material);
+  const longTunic = (material, depth = 0.05, hem = 0.035) => P(drape('long' + depth + hem, { top: () => 0.862, bot: () => hem, rad: (th, yy) => prof(yy) * pleats(th, yy, hem, depth), m: 8 }), material);
   const shortTunic = (material, hem = 0.36, depth = 0.05) => P(drape('short' + hem, { top: () => 0.862, bot: () => hem, rad: (th, yy) => (yy < 0.56 ? lerp(0.17, 0.127, (yy - hem) / (0.56 - hem)) : prof(yy)) * pleats(th, yy, hem, depth, 9), m: 9 }), material);
   const sleeveCap = (material, sd) => ball(material, sd * 0.158, 0.782, 0, 0.046, 0.046, 0.052);
   const belt = (material, by = 0.565, r = 0.131, thick = 0.017) => { const b = P(G('belt' + thick, () => new THREE.TorusGeometry(1, thick / 0.131, 6, 18)), material, 0, by, 0); b.rotation.x = PI / 2; b.scale.set(r, r * DEPTH, r); };
@@ -108,12 +108,11 @@ export function person(g, x, z, y = 0, i = 0, s = 1) {
   const edge = (lo, hi) => (th) => lerp(lo, hi, Math.pow((Math.sin(th) + 1) / 2, 0.75));
   const mantle = (key, material, { lo = 0.5, hi = 0.84, hem = 0.07, lift = 0.1, out = 0.028, border = null, roll: rr = 0.008 }) => {
     const top = edge(lo, hi), bot = (th) => hem + lift * clamp01(Math.cos(th + 0.9)) ** 2; // hem rises at the right front, showing the tunic
-    const rad = (th, yy, v = 0) => prof(yy) + out * (1 - 0.8 * v * v) + 0.012 * (1 - v * v) * Math.sin(17 * yy + 2.2 * th) + 0.006 * Math.sin(9 * th);
-    P(drape(key, { top, bot, rad, m: 10, n: 36 }), material);
-    P(roll(key + 'roll', (th) => [top(th) - 0.004, prof(top(th)) + out * 0.2 + 0.004], -PI, PI, rr, true), material); // balteus: the rolled upper edge
-    if (border) {
-      P(drape(key + 'bT', { top: (th) => top(th) - 0.028, bot: (th) => top(th) - 0.062, rad: (th, yy) => rad(th, yy, 0.93) + 0.006, m: 1, n: 36 }), border);
-    }
+    const rad = (th, yy, v = 0) => prof(yy) + out * (1 - 0.5 * v * v) + 0.012 * (1 - v * v) * Math.sin(17 * yy + 2.2 * th) + 0.006 * Math.sin(9 * th);
+    P(drape(key, { top, bot, rad, m: 8, n: 24 }), material);
+    // balteus: the upper edge folded over into a broad band rather than a cord
+    P(drape(key + 'fold', { top: (th) => top(th) + 0.006, bot: (th) => top(th) - 0.05, rad: (th, yy) => rad(th, yy, 0.9) + 0.011, m: 2, n: 24 }), material);
+    if (border) P(drape(key + 'bT', { top: (th) => top(th) - 0.012, bot: (th) => top(th) - 0.04, rad: (th, yy) => rad(th, yy, 0.9) + 0.017, m: 1, n: 24 }), border);
     return { top, rad };
   };
   // sinus: the deep curved fold of the imperial toga hanging from the right hip across the knees
@@ -122,7 +121,6 @@ export function person(g, x, z, y = 0, i = 0, s = 1) {
     const e = (th) => Math.sqrt(Math.sin(PI * clamp01((th - A0) / (A1 - A0))) + 0.001);
     const rad = (th, yy, v) => prof(yy) + 0.034 + (0.02 + 0.03 * (1 - v)) * e(th) + 0.006 * Math.sin(20 * yy + th);
     P(drape('sinus', { t0: A0, t1: A1, top, bot: (th) => top(th) - sag(th), rad, m: 6, n: 26 }), material);
-    P(roll('sinusRoll', (th) => [top(th) - sag(th), prof(top(th) - sag(th)) + 0.036 + 0.05 * e(th)], A0, A1, 0.009), border || material);
   };
   const overLeftArm = (material, border, len = 0.42, panel = true) => { // lacinia: the end of the mantle falling in folds from the left forearm
     if (!panel) return;
@@ -145,7 +143,7 @@ export function person(g, x, z, y = 0, i = 0, s = 1) {
   const head0 = ({ hair = -1, bald = false, beard = false, woman = false, veiled = false, helmet = false } = {}) => {
     ball(skin, 0, 0.928, 0, 0.079, 0.09, 0.084);
     P(G('neck', () => new THREE.CylinderGeometry(0.036, 0.044, 0.1, 8)), skin, 0, 0.84, 0);
-    const nose = P(G('nose', () => new THREE.ConeGeometry(0.014, 0.04, 5)), skin, 0, 0.922, 0.086); nose.rotation.x = -0.35;
+    ball(skin, 0, 0.92, 0.084, 0.012, 0.02, 0.014);
     for (const sd of [-1, 1]) { ball(F.dark, sd * 0.031, 0.94, 0.074, 0.0105, 0.008, 0.007); ball(skin, sd * 0.08, 0.925, 0.004, 0.012, 0.02, 0.014); }
     P(G('mouth', () => new THREE.BoxGeometry(0.032, 0.007, 0.01)), mt('mouth', 0x7a3b30), 0, 0.888, 0.077);
     const hm = F.hair(hair < 0 ? Math.floor(h2 * 3) : hair);
@@ -159,7 +157,7 @@ export function person(g, x, z, y = 0, i = 0, s = 1) {
       for (const sd of [-1, 1]) ball(hm, sd * 0.046, 0.955, 0.0, 0.044, 0.05, 0.078);
       if (!veiled) ball(hm, 0, 0.93, -0.095, 0.045, 0.04, 0.04);
     }
-    if (beard) { const b = P(G('beard', () => new THREE.SphereGeometry(1, 10, 3, PI * 0.2, PI * 0.6, PI * 0.64, PI * 0.3)), hair === 3 ? hm : mt('beard', 0x4d3a2c), 0, 0.93, 0.0); b.scale.set(0.081, 0.097, 0.087); }
+    if (beard) { const b = P(G('beard', () => new THREE.SphereGeometry(1, 10, 3, PI * 0.2, PI * 0.6, PI * 0.64, PI * 0.3)), hair === 3 ? hm : mt('beard', 0x6b5140), 0, 0.93, 0.0); b.scale.set(0.0805, 0.094, 0.0865); }
   };
   const veil = (material) => up(() => veil0(material));
   const veil0 = (material) => { // mantle drawn over the head and falling to the shoulders
@@ -196,7 +194,7 @@ export function person(g, x, z, y = 0, i = 0, s = 1) {
     longTunic(stola, 0.075, 0.03);
     P(drape('institia', { top: () => 0.085, bot: () => 0.025, rad: (th, yy) => prof(yy) * pleats(th, yy, 0.03, 0.075) + 0.006, m: 1 }), palla); // the stola's hem band
     belt(F.brass, 0.655, 0.146, 0.011);
-    mantle('palla', palla, { hem: 0.3, lift: 0.1, lo: 0.5, out: 0.03 });
+    mantle('palla', palla, { hem: 0.3, lift: 0.1, lo: 0.5, out: 0.042 });
     overLeftArm(palla, null, 0.3, false);
     head({ woman: true, veiled: h3 > 0.35 });
     if (h3 > 0.35) veil(palla);
@@ -227,8 +225,8 @@ export function person(g, x, z, y = 0, i = 0, s = 1) {
       const hl = P(G('helm', () => new THREE.SphereGeometry(1, 12, 6, 0, PI * 2, 0, PI * 0.47)), F.steel, 0, 0.955, -0.004); hl.scale.set(0.09, 0.09, 0.096);
       const brow = P(G('brow', () => new THREE.TorusGeometry(0.09, 0.01, 5, 14, PI)), F.brass, 0, 0.952, 0.004); brow.rotation.x = -PI / 2 + 0.12;
       const back = P(G('helmBack', () => new THREE.SphereGeometry(1, 10, 4, PI * 1.02, PI * 0.96, PI * 0.46, PI * 0.3)), F.steel, 0, 0.955, -0.004); back.scale.set(0.09, 0.09, 0.096);
-      const ng = ball(F.steel, 0, 0.885, -0.085, 0.07, 0.01, 0.04); ng.rotation.x = -0.3; // neck guard flaring from the bowl
-      for (const sd of [-1, 1]) ball(F.steel, sd * 0.074, 0.9, 0.04, 0.009, 0.04, 0.024); // cheek pieces lying on the jaw
+      const ng = ball(F.steel, 0, 0.872, -0.078, 0.066, 0.01, 0.04); ng.rotation.x = -0.85; // neck guard flaring from the bowl
+      for (const sd of [-1, 1]) ball(F.mail, sd * 0.077, 0.915, 0.028, 0.007, 0.044, 0.034); // cheek pieces lying on the jaw
       ball(F.brass, 0, 1.05, -0.004, 0.013, 0.016, 0.013);
     });
     // scutum on the left arm
@@ -279,7 +277,7 @@ export function person(g, x, z, y = 0, i = 0, s = 1) {
       const H = arm(-1, null, [0.05, 0.62, 0.08], [0.02, 0.74, 0.17]);
       const tool = new THREE.Group(); tool.position.set(H[0] - 0.012, H[1], H[2]); tool.rotation.x = -0.95; grp.add(tool); // haft runs up and back over the shoulder
       put(tool, G('haft', () => new THREE.CylinderGeometry(0.012, 0.012, 0.72, 6)), F.wood, 0, 0.26, 0);
-      put(tool, G('mattock', () => new THREE.BoxGeometry(0.035, 0.03, 0.17)), F.steel, 0, 0.6, -0.05);
+      put(tool, G('mattock', () => new THREE.BoxGeometry(0.075, 0.012, 0.1)), F.steel, 0, 0.6, -0.05).rotation.x = 0.5;
       arm(1, null, [0.04, 0.6, 0.03], [0.03, 0.45, 0.08]);
     }
     if (h2 < 0.6) up(() => { const cap = P(G('pileus', () => new THREE.SphereGeometry(1, 12, 6, 0, PI * 2, 0, PI * 0.5)), F.felt, 0, 0.962, -0.008); cap.scale.set(0.088, 0.135, 0.092); }); // pileus, the workman's egg-shaped felt cap
@@ -295,7 +293,7 @@ export function person(g, x, z, y = 0, i = 0, s = 1) {
     if (h3 > 0.5) up(() => { const brim = P(G('petasos', () => new THREE.CylinderGeometry(0.17, 0.18, 0.012, 14)), F.straw, 0, 1.0, 0); brim.rotation.x = -0.06; ball(F.straw, 0, 1.005, 0, 0.085, 0.045, 0.085); }); // petasos, the traveller's hat
     const H = arm(-1, ck, [0.07, 0.62, 0.09], [0.12, 0.66, 0.19], 0.05);
     P(G('walkstaff', () => new THREE.CylinderGeometry(0.014, 0.018, 1.08, 6)), F.wood, H[0], 0.54, H[2] + 0.01);
-    P(roll('satStrap', (th) => { const yy = lerp(0.47, 0.845, Math.pow((1 - Math.sin(th)) / 2, 0.8)); return [yy, prof(yy, CL) * 1.045 + 0.004]; }, -PI, PI, 0.008, true), F.leather).scale.z = 1.12; // strap from the right shoulder to the bag on the left hip
+    P(roll('satStrap', (th) => { const yy = lerp(0.47, 0.845, Math.pow((1 - Math.sin(th)) / 2, 0.8)); return [yy, prof(yy, CL) * 1.005 + 0.003]; }, -PI, PI, 0.007, true), F.leather).scale.z = 1.12; // strap from the right shoulder to the bag on the left hip
     P(G('satchel', () => new THREE.BoxGeometry(0.03, 0.11, 0.14)), F.leather, 0.232, 0.43, 0.02);
     P(G('satFlap', () => new THREE.BoxGeometry(0.034, 0.06, 0.146)), F.sole, 0.234, 0.457, 0.02);
   }
