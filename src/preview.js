@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { buildMonument, BASE_DEPTH } from './monuments/index.js';
+import { person } from './monuments/kit.js';
 
 const q = new URLSearchParams(location.search), num = (k, d) => (q.has(k) ? +q.get(k) : d);
 const canvas = document.getElementById('c');
@@ -23,7 +24,11 @@ scene.add(sun);
 const ground = new THREE.Mesh(new THREE.CircleGeometry(12, 48), new THREE.MeshStandardMaterial({ color: 0x8f9c63, roughness: 1 }));
 ground.rotation.x = -Math.PI / 2; ground.position.y = -BASE_DEPTH; ground.receiveShadow = true; scene.add(ground);
 const t0 = performance.now();
-const model = buildMonument(q.get('m') || 'soli');
+let model;
+if (q.get('m') === 'figures') { // line-up of the six Roman figure types, front and back
+  model = new THREE.Group();
+  for (let i = 0; i < 6; i++) for (const r of [0, 1]) { const f = person(model, (i - 2.5) * 0.42 + r * 0.21, 0.4 - r * 0.8, 0, i, 10); f.rotation.y = r ? Math.PI * 0.85 : 0.3; }
+} else model = buildMonument(q.get('m') || 'soli');
 scene.add(model);
 window.__stats = { ms: Math.round(performance.now() - t0), meshes: model.children.length, tris: 0 };
 model.traverse((o) => { if (o.isMesh) window.__stats.tris += (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count) / 3; });

@@ -446,10 +446,117 @@ export function scatter(g, kind, n, area, Y, seed = 1, sMin = 0.7, sMax = 1.2, o
     placed++;
   }
 }
+// Roman figures, built 1 unit tall (feet at y = 0, facing +z) and scaled down to the diorama.
+// i picks the type: 0 citizen in a toga, 1 matron in stola and palla, 2 legionary, 3 labourer with an amphora,
+// 4 magistrate in a purple-bordered toga, 5 traveller in a hooded cloak.
+const FIG_H = 0.066;
+const figMat = (k, color, o = {}) => mat('fig-' + k, () => std({ color, roughness: 0.85, ...o }));
+const F = {
+  get toga() { return figMat('toga', 0xf3ecdb); }, get tunic() { return figMat('tunic', 0xe2d6bb); }, get purple() { return figMat('purple', 0x6e2148); },
+  get red() { return figMat('red', 0xa32a22); }, get steel() { return figMat('steel', 0xa9aeb4, { roughness: 0.4, metalness: 0.8 }); },
+  get leather() { return figMat('leather', 0x5b3a22); }, get hair() { return figMat('hair', 0x33241a); }, get grey() { return figMat('greyhair', 0x9a948c); },
+  get terracotta() { return figMat('terracotta', 0xb5653a); }, get gold() { return figMat('gold', 0xd2a941, { roughness: 0.4, metalness: 0.7 }); },
+  get undyed() { return figMat('undyed', 0x9b7a4e); }, get cloak() { return figMat('cloak', 0x5a4636); },
+  dye(n) { const c = [0xc98a2b, 0x2f6a8c, 0x5f8a56, 0xa8455e, 0x3f8f8a, 0xd0b060][n % 6]; return figMat('dye' + (n % 6), c); },
+};
+const lathe = (key, pts, seg = 10) => (geoCache[key] ||= new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r, y)), seg));
+function limb(grp, material, r, x0, y0, z0, x1, y1, z1) {
+  const a = new THREE.Vector3(x0, y0, z0), b = new THREE.Vector3(x1, y1, z1), len = a.distanceTo(b);
+  const m = put(grp, geoCache['limb' + r] ||= new THREE.CapsuleGeometry(r, 1, 2, 6), material, (x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
+  m.scale.y = len / (1 + 2 * r) ; m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.sub(a).normalize());
+  return m;
+}
 export function person(g, x, z, y = 0, i = 0, s = 1) {
-  const grp = new THREE.Group(); grp.position.set(x, y, z); grp.scale.setScalar(s); g.add(grp);
-  put(grp, geoCache.body ||= new THREE.CapsuleGeometry(0.008, 0.02, 3, 6), M.cloth(i), 0, 0.02, 0);
-  put(grp, geoCache.head ||= new THREE.SphereGeometry(0.0065, 6, 5), M.skin, 0, 0.043, 0);
+  const grp = new THREE.Group(), h1 = hash(x * 91.7 + i, z * 57.3), h2 = hash(z * 33.1, x * 71.9 + i), type = ((i % 6) + 6) % 6;
+  grp.position.set(x, y, z); grp.scale.setScalar(FIG_H * s * (0.94 + h2 * 0.12)); grp.rotation.y = h1 * Math.PI * 2; g.add(grp);
+  const P = (geo, material, px, py, pz) => put(grp, geo, material, px, py, pz);
+  const sph = geoCache.figSph ||= new THREE.SphereGeometry(1, 10, 8);
+  const longRobe = (material) => { const m = P(lathe('robe', [[0.02, 0], [0.19, 0], [0.175, 0.1], [0.13, 0.42], [0.125, 0.56], [0.15, 0.7], [0.165, 0.79], [0.12, 0.835], [0.05, 0.86]]), material, 0, 0, 0); m.scale.z = 0.72; return m; };
+  const shortTunic = (material, legs = M.skin) => {
+    const m = P(lathe('tunic', [[0.02, 0.36], [0.17, 0.36], [0.15, 0.46], [0.125, 0.57], [0.15, 0.7], [0.165, 0.79], [0.12, 0.835], [0.05, 0.86]]), material, 0, 0, 0); m.scale.z = 0.72;
+    for (const sd of [-1, 1]) { limb(grp, legs, 0.042, sd * 0.065, 0.4, 0, sd * 0.07, 0.05, 0); P(geoCache.figFoot ||= new THREE.BoxGeometry(0.075, 0.035, 0.15), F.leather, sd * 0.07, 0.018, 0.03); }
+    return m;
+  };
+  const head = (hairMat) => {
+    const hd = P(sph, M.skin, 0, 0.925, 0); hd.scale.set(0.078, 0.088, 0.082);
+    P(geoCache.figNeck ||= new THREE.CylinderGeometry(0.035, 0.04, 0.06, 6), M.skin, 0, 0.855, 0);
+    if (hairMat) { const hr = P(geoCache.figHair ||= new THREE.SphereGeometry(1, 10, 6, 0, Math.PI * 2, 0, Math.PI * 0.55), hairMat, 0, 0.935, -0.012); hr.scale.set(0.084, 0.09, 0.088); }
+  };
+  const arm = (sd, material, ex, ey, ez, hx, hy, hz) => { // shoulder → elbow in a sleeve, elbow → hand bare
+    const sx = sd * 0.165;
+    limb(grp, material, 0.04, sx, 0.77, 0, sx + sd * ex, ey, ez); limb(grp, M.skin, 0.03, sx + sd * ex, ey, ez, sx + sd * hx, hy, hz);
+    return [sx + sd * hx, hy, hz];
+  };
+  const belt = (material, by = 0.57, r = 0.128) => { const b = P(geoCache.figBelt ||= new THREE.TorusGeometry(1, 0.13, 5, 12), material, 0, by, 0); b.rotation.x = Math.PI / 2; b.scale.set(r, r * 0.74, r); };
+  // the toga: a heavy band from the left shoulder across the chest to the right hip, a second sweep round the knees, and folds over the left forearm
+  const toga = (material, border) => {
+    const band = geoCache.figBand ||= new THREE.TorusGeometry(0.19, 0.05, 6, 14);
+    for (const [mt, sc, dy] of border ? [[material, 1, 0], [border, 1.035, -0.012]] : [[material, 1, 0]]) {
+      const t = P(band, mt, 0.005, 0.62 + dy, 0); t.rotation.set(Math.PI / 2 - 0.12, -0.78, 0); t.scale.set(sc, 0.74 * sc, mt === border ? 0.55 : 1.25);
+    }
+    const sweep = P(band, material, 0, 0.3, 0.01); sweep.rotation.set(Math.PI / 2 + 0.1, 0.42, 0); sweep.scale.set(0.88, 0.68, 1.25);
+    const sh = P(sph, material, -0.15, 0.79, 0); sh.scale.set(0.085, 0.06, 0.1);
+    const fold = P(sph, material, -0.215, 0.42, 0.14); fold.scale.set(0.04, 0.2, 0.06);
+    if (border) { const fb = P(sph, border, -0.215, 0.25, 0.14); fb.scale.set(0.042, 0.035, 0.062); }
+  };
+
+  if (type === 0 || type === 4) {
+    longRobe(F.tunic);
+    for (const sd of [-1, 1]) P(geoCache.figClavus ||= new THREE.BoxGeometry(0.018, 0.5, 0.01), F.purple, sd * 0.05, 0.28, 0.1 + 0.012); // clavi on the tunic
+    toga(F.toga, type === 4 ? F.purple : null);
+    head(type === 4 ? F.grey : F.hair);
+    arm(-1, F.toga, 0.03, 0.6, 0.06, 0.05, 0.6, 0.2);
+    if (type === 4) { const [hx, hy, hz] = arm(1, F.tunic, 0.1, 0.72, 0.12, 0.16, 0.93, 0.2); const sc = P(geoCache.figScroll ||= new THREE.CylinderGeometry(0.02, 0.02, 0.13, 6), F.toga, hx, hy + 0.03, hz); sc.rotation.z = 0.5; }
+    else arm(1, F.tunic, 0.035, 0.58, 0.02, 0.03, 0.42, 0.06);
+  } else if (type === 1) {
+    const stola = F.dye(Math.floor(h2 * 6)), palla = F.dye(Math.floor(h2 * 6) + 2 + Math.floor(h1 * 3));
+    longRobe(stola); belt(F.gold, 0.63, 0.14);
+    const hem = P(lathe('hem', [[0.192, 0.0], [0.194, 0.05], [0.182, 0.055]]), palla, 0, 0, 0); hem.scale.z = 0.72;
+    head(F.hair);
+    const back0 = mat('fig-pallaDS' + palla.color.getHex(), () => std({ color: palla.color, roughness: 0.85, side: THREE.DoubleSide }));
+    // palla: drawn over the head as a veil, falling down the back and wrapped across the body
+    const veil = P(geoCache.figVeil ||= new THREE.SphereGeometry(1, 12, 8, Math.PI * 0.82, Math.PI * 1.36, 0, Math.PI * 0.66), back0, 0, 0.93, -0.012); veil.scale.set(0.098, 0.108, 0.105);
+    const back = P(geoCache.figBack ||= new THREE.CylinderGeometry(0.15, 0.19, 0.62, 8, 1, true, Math.PI * 0.5, Math.PI), back0, 0, 0.56, -0.005); back.scale.z = 0.8;
+    const wrap = P(geoCache.figBand ||= new THREE.TorusGeometry(0.19, 0.05, 6, 14), palla, 0, 0.56, 0.005); wrap.rotation.set(Math.PI / 2 - 0.1, 0.5, 0); wrap.scale.set(0.93, 0.7, 1.5);
+    arm(-1, palla, 0.02, 0.6, 0.07, -0.04, 0.63, 0.19); arm(1, stola, 0.03, 0.58, 0.02, 0.03, 0.43, 0.05);
+  } else if (type === 2) {
+    shortTunic(F.red);
+    // lorica segmentata: banded cuirass, shoulder plates, apron of studded straps
+    const cu = P(lathe('cuirass', [[0.03, 0.5], [0.15, 0.5], [0.148, 0.56], [0.158, 0.565], [0.16, 0.63], [0.168, 0.635], [0.17, 0.7], [0.178, 0.705], [0.178, 0.79], [0.12, 0.84], [0.05, 0.865]]), F.steel, 0, 0, 0); cu.scale.z = 0.76;
+    for (const sd of [-1, 1]) { const sp = P(sph, F.steel, sd * 0.17, 0.79, 0); sp.scale.set(0.075, 0.045, 0.085); }
+    belt(F.leather, 0.5, 0.15);
+    for (let k = -1; k <= 1; k++) P(geoCache.figStrap ||= new THREE.BoxGeometry(0.022, 0.11, 0.012), F.gold, k * 0.032, 0.435, 0.118);
+    head(null);
+    const hl = P(geoCache.figHelm ||= new THREE.SphereGeometry(1, 10, 6, 0, Math.PI * 2, 0, Math.PI * 0.56), F.steel, 0, 0.94, 0); hl.scale.set(0.092, 0.095, 0.097);
+    P(geoCache.figNeckG ||= new THREE.BoxGeometry(0.16, 0.02, 0.08), F.steel, 0, 0.895, -0.085).rotation.x = 0.5;
+    for (const sd of [-1, 1]) P(geoCache.figCheek ||= new THREE.BoxGeometry(0.014, 0.08, 0.05), F.gold, sd * 0.082, 0.9, 0.025);
+    P(geoCache.figCrest ||= new THREE.BoxGeometry(0.03, 0.075, 0.2), F.red, 0, 1.055, -0.005);
+    // scutum on the left arm, pilum grounded in the right hand
+    arm(-1, F.red, 0.04, 0.6, 0.05, 0.03, 0.56, 0.14);
+    const sc = P(geoCache.figScutum ||= new THREE.CylinderGeometry(0.2, 0.2, 0.56, 8, 1, true, -0.62, 1.24), mat('fig-scutum', () => std({ color: 0xa32a22, roughness: 0.7, side: THREE.DoubleSide })), -0.21, 0.5, -0.02);
+    sc.rotation.y = -0.35;
+    const boss = P(sph, F.gold, -0.275, 0.5, 0.165); boss.scale.set(0.04, 0.04, 0.025); boss.rotation.y = -0.35;
+    const [hx, , hz] = arm(1, F.red, 0.05, 0.62, 0.05, 0.1, 0.6, 0.13);
+    P(geoCache.figPilum ||= new THREE.CylinderGeometry(0.011, 0.011, 1.2, 5), F.leather, hx, 0.6, hz);
+    P(geoCache.figPilumTip ||= new THREE.ConeGeometry(0.02, 0.2, 5), F.steel, hx, 1.3, hz);
+  } else if (type === 3) {
+    shortTunic(h2 > 0.5 ? F.undyed : F.dye(5)); belt(F.leather);
+    head(F.hair);
+    // exomis worn off one shoulder, an amphora carried on the other
+    arm(1, M.skin, 0.035, 0.58, 0.03, 0.03, 0.43, 0.07);
+    const [hx, hy, hz] = arm(-1, F.undyed, 0.07, 0.86, 0.06, 0.0, 1.0, 0.05);
+    const am = P(lathe('amphora', [[0.0, -0.17], [0.03, -0.12], [0.075, 0.02], [0.08, 0.1], [0.04, 0.17], [0.028, 0.24], [0.045, 0.26]], 8), F.terracotta, -0.16, 0.99, -0.02); am.rotation.set(Math.PI / 2 - 0.25, 0, 0.1);
+    if (h1 > 0.4) { const hat = P(geoCache.figHat ||= new THREE.ConeGeometry(0.16, 0.07, 10), figMat('straw', 0xd8bd7a), 0, 1.02, 0); hat.userData.fig = 1; }
+  } else {
+    shortTunic(F.dye(1), F.leather);
+    // paenula: a bell-shaped travelling cloak with its hood thrown back, and a walking staff
+    const ck = P(lathe('paenula', [[0.02, 0.3], [0.225, 0.3], [0.215, 0.45], [0.195, 0.66], [0.185, 0.79], [0.13, 0.85], [0.05, 0.875]]), h2 > 0.5 ? F.cloak : F.dye(2), 0, 0, 0); ck.scale.z = 0.85;
+    const hood = P(sph, ck.material, 0, 0.86, -0.085); hood.scale.set(0.085, 0.07, 0.07);
+    head(h1 > 0.5 ? F.hair : F.grey);
+    const [hx, , hz] = arm(1, ck.material, 0.07, 0.62, 0.08, 0.12, 0.66, 0.17);
+    P(geoCache.figStaff ||= new THREE.CylinderGeometry(0.014, 0.017, 1.05, 5), F.leather, hx, 0.525, hz);
+    const bag = P(sph, F.leather, -0.2, 0.47, 0.03); bag.scale.set(0.06, 0.08, 0.075);
+  }
   return grp;
 }
 export function boulder(g, x, y, z, s, seed = 1, material = M.rock) {
