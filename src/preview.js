@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { buildMonument, BASE_DEPTH } from './monuments/index.js';
-import { person } from './monuments/kit.js';
+import { person, tree } from './monuments/kit.js';
 
 const q = new URLSearchParams(location.search), num = (k, d) => (q.has(k) ? +q.get(k) : d);
 const canvas = document.getElementById('c');
@@ -27,7 +27,13 @@ const t0 = performance.now();
 let model;
 if (q.get('m') === 'figures') { // line-up of the six Roman figure types, front and back
   model = new THREE.Group();
-  for (let i = 0; i < 6; i++) for (const r of [0, 1]) { const f = person(model, (i - 2.5) * 0.42 + r * 0.21, 0.4 - r * 0.8, 0, i, 10); f.rotation.y = r ? Math.PI * 0.85 : 0.3; }
+  // ?only=<type> shows one type large; ?fr=<deg> turns them all
+  const only = q.get('only'), fr = THREE.MathUtils.degToRad(num('fr', 15));
+  if (only !== null) for (let k = 0; k < 4; k++) person(model, (k - 1.5) * 0.5 + 0.013 * k, 0.07 * k, 0, +only, 13).rotation.y = fr + k * (q.has('spin') ? Math.PI / 2 : 0);
+  else for (let i = 0; i < 6; i++) for (const r of [0, 1]) person(model, (i - 2.5) * 0.46 + r * 0.23, 0.45 - r * 0.9, 0, i, 10).rotation.y = fr;
+} else if (q.get('m') === 'trees') { // one row per species, three seeds each
+  model = new THREE.Group();
+  ['cypress', 'pine', 'olive', 'citrus', 'palm', 'oak', 'cedar', 'reed', 'shrub'].forEach((k, i) => { for (let r = 0; r < 3; r++) tree(model, k, (i - 4) * 0.42, 0.5 - r * 0.5, 3.2, 0, i * 3 + r + 1); });
 } else model = buildMonument(q.get('m') || 'soli');
 scene.add(model);
 window.__stats = { ms: Math.round(performance.now() - t0), meshes: model.children.length, tris: 0 };

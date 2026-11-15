@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Line2 } from 'three/addons/lines/Line2.js';
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { WORLD, lonLatToXZ, metresToY } from './geo.js';
 import { loadHeights, makeSampler, coastDistance, buildTerrain, buildSea } from './terrain.js';
 import { buildMonument, galley, BASE_DEPTH } from './monuments/index.js';
@@ -49,7 +50,7 @@ const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
 controls.dampingFactor = 0.08;
 controls.maxPolarAngle = THREE.MathUtils.degToRad(80);
-controls.minDistance = 2.5;
+controls.minDistance = 0.4; // close enough to walk among the figures of a diorama
 controls.maxDistance = 950;
 controls.zoomSpeed = 0.9;
 controls.screenSpacePanning = false;
@@ -206,30 +207,53 @@ function buildRoads() {
   scene.add(roadGroup);
 }
 
+// Low-poly trees for the map itself, one instanced mesh per species so thousands cost four draw calls.
+// Species follow the real belts: olive, stone pine and cypress on the coastal plain, Turkish pine and
+// kermes oak on the slopes, cedar and fir in the high Taurus.
+function treeGeometries() {
+  const part = (geo, rgb, matrix) => {
+    geo = geo.index ? geo.toNonIndexed() : geo; geo.deleteAttribute('uv'); if (matrix) geo.applyMatrix4(matrix);
+    const n = geo.attributes.position.count, c = new Float32Array(n * 3);
+    for (let i = 0; i < n; i += 3) { const k = 0.82 + 0.36 * Math.abs(Math.sin(i * 12.9898 + rgb[1] * 78.2)); for (let v = 0; v < 3; v++) c.set([rgb[0] * k, rgb[1] * k, rgb[2] * k], (i + v) * 3); } // per-face tone
+    geo.setAttribute('color', new THREE.BufferAttribute(c, 3)); geo.computeVertexNormals();
+    return geo;
+  };
+  const T = (x, y, z, sx, sy = sx, sz = sx, ry = 0) => new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, ry, 0)), new THREE.Vector3(sx, sy, sz));
+  const LEAF = [1, 1, 1], BARK = [1.7, 0.75, 0.75]; // bark is over-driven so the green instance tint still leaves it brown
+  const bole = (h, r) => part(new THREE.CylinderGeometry(r * 0.6, r, h, 4, 1, true), BARK, T(0, h / 2, 0, 1));
+  const blob = (x, y, z, r, flat, ry = 0) => part(new THREE.IcosahedronGeometry(1, 0), LEAF, T(x, y, z, r, r * flat, r, ry));
+  const tier = (y, r, h) => part(new THREE.ConeGeometry(r, h, 6, 1, true), LEAF, T(0, y, 0, 1));
+  return {
+    pine: mergeGeometries([bole(0.12, 0.012), blob(0, 0.155, 0, 0.06, 0.55), blob(0.04, 0.14, 0.02, 0.04, 0.5, 1), blob(-0.035, 0.145, -0.025, 0.04, 0.5, 2)]),
+    olive: mergeGeometries([bole(0.05, 0.016), blob(0, 0.085, 0, 0.05, 0.75), blob(0.035, 0.07, 0.02, 0.035, 0.7, 1.3)]),
+    cypress: mergeGeometries([bole(0.03, 0.008), part(new THREE.LatheGeometry([[0.012, 0.02], [0.03, 0.08], [0.027, 0.17], [0.012, 0.25], [0, 0.28]].map(([r, y]) => new THREE.Vector2(r, y)), 5), LEAF)]),
+    cedar: mergeGeometries([bole(0.1, 0.011), tier(0.085, 0.07, 0.07), tier(0.135, 0.056, 0.07), tier(0.185, 0.04, 0.07), tier(0.235, 0.024, 0.07)]),
+  };
+}
 function buildTrees() {
-  // scatter pines/olives around each site so close-ups have life; purely decorative
-  const geo = new THREE.ConeGeometry(0.05, 0.17, 5); geo.translate(0, 0.085, 0);
-  const per = LOW ? 260 : 650;
-  const mesh = new THREE.InstancedMesh(geo, new THREE.MeshStandardMaterial({ roughness: 1, flatShading: true }), per * SITES.length);
-  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), p = new THREE.Vector3(), col = new THREE.Color();
-  let n = 0, seed = 7;
+  const per = LOW ? 260 : 650, geos = treeGeometries(), group = new THREE.Group();
+  const material = new THREE.MeshStandardMaterial({ roughness: 1, flatShading: true, vertexColors: true });
+  const kinds = {}, m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), p = new THREE.Vector3(), col = new THREE.Color(), up = new THREE.Vector3(0, 1, 0);
+  for (const k in geos) { const mesh = new THREE.InstancedMesh(geos[k], material, per * SITES.length); mesh.count = 0; mesh.castShadow = true; kinds[k] = mesh; group.add(mesh); }
+  const tint = { pine: [0.29, 0.45, 0.2], olive: [0.23, 0.22, 0.29], cypress: [0.34, 0.42, 0.13], cedar: [0.36, 0.38, 0.15] }; // hue, saturation, lightness
+  let seed = 7;
   const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
-  for (const o of siteObjs) {
-    for (let k = 0; k < per * 3 && n < (siteObjs.indexOf(o) + 1) * per; k++) {
+  siteObjs.forEach((o, si) => {
+    for (let k = 0, n = 0; k < per * 3 && n < per; k++) {
       const a = rnd() * 6.283, r = 1.7 + Math.pow(rnd(), 1.4) * 13; // dense near the site, thinning out
       const x = o.pos.x + Math.cos(a) * r, z = o.pos.z + Math.sin(a) * r;
       const h = sampleH(x, z);
       if (h < 6 || h > 1900 || rnd() > 0.35 + 0.65 * Math.min(1, h / 500) || siteObjs.some((s) => Math.hypot(s.pos.x - x, s.pos.z - z) < 1.6)) continue;
-      const s = 0.6 + rnd() * 0.9;
-      p.set(x, metresToY(h) - 0.01, z); sc.set(s * (0.7 + rnd() * 0.6), s, s * (0.7 + rnd() * 0.6));
-      mesh.setMatrixAt(n, m4.compose(p, q, sc));
-      mesh.setColorAt(n, col.setHSL(0.27 + rnd() * 0.08, 0.35 + rnd() * 0.2, 0.2 + rnd() * 0.12));
-      n++;
+      const u = rnd(), kind = h < 250 ? (u < 0.45 ? 'olive' : u < 0.82 ? 'pine' : 'cypress') : h < 1100 ? (u < 0.62 ? 'pine' : u < 0.92 ? 'olive' : 'cedar') : (u < 0.82 ? 'cedar' : 'pine');
+      const mesh = kinds[kind], s = (0.7 + rnd() * 0.8) * (kind === 'olive' && h >= 250 ? 0.85 : 1), t = tint[kind];
+      p.set(x, metresToY(h) - 0.01, z); sc.set(s * (0.85 + rnd() * 0.3), s, s * (0.85 + rnd() * 0.3));
+      mesh.setMatrixAt(mesh.count, m4.compose(p, q.setFromAxisAngle(up, rnd() * 6.283), sc));
+      mesh.setColorAt(mesh.count, col.setHSL(t[0] + (rnd() - 0.5) * 0.05, t[1] + (rnd() - 0.5) * 0.12, (kind === 'olive' && h >= 250 ? 0.19 : t[2]) + (rnd() - 0.5) * 0.07)); // upland "olive" shapes stand in for dark kermes oak
+      mesh.count++; n++;
     }
-  }
-  mesh.count = n; mesh.castShadow = true;
-  scene.add(mesh);
-  return mesh;
+  });
+  scene.add(group);
+  return group;
 }
 
 function buildShips() {
@@ -620,7 +644,7 @@ function frame() {
 
   // sun + shadow frustum follow the view
   const dist = camera.position.distanceTo(controls.target);
-  const sh = THREE.MathUtils.clamp(dist * 0.6, 3, 90);
+  const sh = THREE.MathUtils.clamp(dist * 0.6, 1.2, 90);
   sun.target.position.copy(controls.target);
   sun.position.copy(controls.target).addScaledVector(sunDir, 300);
   const sc = sun.shadow.camera;
@@ -628,8 +652,8 @@ function frame() {
   sky.position.copy(camera.position);
 
   // keep depth precision when far out, so draped roads and rivers do not flicker against the terrain
-  const near = THREE.MathUtils.clamp(dist * 0.02, 0.3, 12);
-  if (Math.abs(camera.near - near) > 0.05) { camera.near = near; camera.updateProjectionMatrix(); }
+  const near = THREE.MathUtils.clamp(dist * 0.02, 0.02, 12);
+  if (Math.abs(camera.near - near) > camera.near * 0.1) { camera.near = near; camera.updateProjectionMatrix(); }
   sea.material.uniforms.uTime.value = t;
   // thin the haze when pulled far back (phones), so the whole map stays readable
   const fogD = THREE.MathUtils.lerp(0.0016, 0.002, state.dusk) * Math.min(1, 240 / dist);

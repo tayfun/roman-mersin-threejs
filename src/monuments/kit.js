@@ -231,6 +231,9 @@ export const M = {
   get trunk() { return mat('trunk', () => std({ color: 0x5b4632 })); },
   get olive() { return mat('olive', () => std({ color: 0x7c8f62, flatShading: true })); },
   get pine() { return mat('pine', () => std({ color: 0x3f6a36, flatShading: true })); },
+  get cedar() { return mat('cedar', () => std({ color: 0x3d5f4a, flatShading: true })); },
+  get palm() { return mat('palm', () => std({ color: 0x4f7a34, flatShading: true, side: THREE.DoubleSide })); },
+  get palmDry() { return mat('palmDry', () => std({ color: 0x9a8454, flatShading: true, side: THREE.DoubleSide })); },
   get cypress() { return mat('cypress', () => std({ color: 0x2f4f2f, flatShading: true })); },
   get citrus() { return mat('citrus', () => std({ color: 0x2f6b2c, flatShading: true })); },
   get shrub() { return mat('shrub', () => std({ color: 0x56743a, flatShading: true })); },
@@ -407,33 +410,73 @@ export function cavea(g, { r0 = 0.16, r1 = 0.55, rows = 10, arc = Math.PI, stair
 // ---------------------------------------------------------------- nature and people
 const geoCache = {};
 const ico = (d = 0) => (geoCache['ico' + d] ||= new THREE.IcosahedronGeometry(1, d));
+// Trees of the Cilician coast and Taurus, each a few dozen triangles: Mediterranean cypress, stone/Turkish pine,
+// olive, citrus, date palm, kermes oak / carob, Taurus cedar, reeds and maquis shrubs.
+const lumpy = (key, geo, amp, sd) => (geoCache[key] ||= (() => { // nudge vertices so crowns are not perfect solids
+  const p = geo.attributes.position;
+  for (let i = 0; i < p.count; i++) { const k = 1 + amp * (hash(p.getX(i) * 31.7 + sd, p.getY(i) * 17.3 + p.getZ(i) * 23.1) - 0.5) * 2; p.setXYZ(i, p.getX(i) * k, p.getY(i), p.getZ(i) * k); }
+  geo.computeVertexNormals(); return geo;
+})());
+const frondGeo = () => (geoCache.frond2 ||= (() => { // an arching, V-folded palm frond pointing along +x
+  const n = 5, pos = [], idx = [];
+  for (let i = 0; i <= n; i++) {
+    const t = i / n, x = t * 0.2, y = 0.07 * Math.sin(t * 2.6) - 0.1 * t * t, w = 0.028 * Math.sin(Math.PI * Math.min(1, t * 1.15 + 0.08));
+    pos.push(x, y + 0.012, -w, x, y, 0, x, y + 0.012, w);
+  }
+  for (let i = 0; i < n; i++) { const a = i * 3; idx.push(a, a + 3, a + 1, a + 3, a + 4, a + 1, a + 1, a + 4, a + 2, a + 4, a + 5, a + 2); }
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(pos.length / 3 * 2), 2)); geo.setIndex(idx); geo.computeVertexNormals(); return geo;
+})());
 export function tree(g, kind, x, z, s = 1, y = 0, seed = 1) {
   const grp = new THREE.Group(); grp.position.set(x, y, z); grp.rotation.y = seed * 2.4; grp.scale.setScalar(s * 0.72); g.add(grp);
-  const trunk = (h, r = 0.012) => { const m = put(grp, geoCache.trunk ||= new THREE.CylinderGeometry(0.7, 1, 1, 6), M.trunk, 0, h / 2, 0); m.scale.set(r, h, r); return m; };
-  if (kind === 'cypress') { trunk(0.05, 0.01); put(grp, geoCache.cyp ||= new THREE.ConeGeometry(1, 1, 7), M.cypress, 0, 0.19, 0).scale.set(0.035, 0.32, 0.035); }
-  else if (kind === 'pine') { // umbrella pine
-    trunk(0.17, 0.013);
-    for (const [dx, dy, dz, r] of [[0, 0.2, 0, 0.085], [0.05, 0.185, 0.03, 0.06], [-0.045, 0.19, -0.03, 0.06]]) put(grp, ico(1), M.pine, dx, dy, dz).scale.set(r, r * 0.5, r);
-  } else if (kind === 'olive') {
-    trunk(0.07, 0.016);
-    for (const [dx, dy, dz, r] of [[0, 0.1, 0, 0.065], [0.045, 0.085, 0.02, 0.045], [-0.04, 0.09, -0.025, 0.05], [0.0, 0.085, 0.05, 0.04]]) put(grp, ico(1), M.olive, dx, dy, dz).scale.set(r, r * 0.75, r);
+  const v = Math.floor(hash(seed, 7.7) * 3), h1 = hash(seed, 3.1), h2 = hash(seed, 9.4);
+  const trunkGeo = geoCache.trunk ||= new THREE.CylinderGeometry(0.62, 1, 1, 5);
+  const trunk = (h, r = 0.012) => { const m = put(grp, trunkGeo, M.trunk, 0, h / 2, 0); m.scale.set(r, h, r); return m; };
+  const limb = (x0, y0, z0, x1, y1, z1, r) => { // a branch between two points
+    const a = new THREE.Vector3(x0, y0, z0), b = new THREE.Vector3(x1, y1, z1), m = put(grp, trunkGeo, M.trunk, (x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
+    m.scale.set(r, a.distanceTo(b), r); m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.sub(a).normalize()); return m;
+  };
+  const blob = (material, dx, dy, dz, r, flat = 0.75, k = 0) => { const m = put(grp, lumpy('blob' + ((v + k) % 3), new THREE.IcosahedronGeometry(1, 1), 0.16, (v + k) % 3), material, dx, dy, dz); m.scale.set(r, r * flat, r); m.rotation.y = k * 1.7 + seed; return m; };
+  if (kind === 'cypress') { // Cupressus sempervirens: a dark flame-shaped column, sometimes with a split tip
+    trunk(0.05, 0.009);
+    const c = put(grp, lumpy('cyp' + v, new THREE.LatheGeometry([[0.012, 0.03], [0.027, 0.07], [0.034, 0.14], [0.031, 0.22], [0.021, 0.3], [0.008, 0.355], [0, 0.375]].map(([r, yy]) => new THREE.Vector2(r, yy)), 7), 0.14, v), M.cypress);
+    c.scale.set(0.9 + h1 * 0.3, 0.9 + h2 * 0.25, 0.9 + h1 * 0.3);
+    if (h2 > 0.6) put(grp, geoCache.cypTip ||= new THREE.ConeGeometry(0.012, 0.09, 5), M.cypress, 0.014, 0.3 * (0.9 + h2 * 0.25), 0.006);
+  } else if (kind === 'pine') { // stone pine: bare leaning trunk, forked limbs, a flat umbrella of needle clumps
+    const lean = 0.03 * (h1 - 0.5), top = 0.165;
+    limb(0, 0, 0, lean, top * 0.62, 0, 0.014);
+    for (const [bx, bz] of [[0.045, 0.02], [-0.04, 0.03], [0.0, -0.045]]) limb(lean, top * 0.6, 0, lean + bx, top, bz, 0.007);
+    for (const [dx, dy, dz, r, k] of [[0, 0.205, 0, 0.075, 0], [0.06, 0.19, 0.03, 0.055, 1], [-0.055, 0.192, 0.035, 0.055, 2], [0.0, 0.188, -0.06, 0.05, 1], [0.035, 0.215, -0.02, 0.045, 2]]) blob(M.pine, lean + dx, dy, dz, r, 0.42, k);
+  } else if (kind === 'olive') { // old olive: short twisted bole splitting into limbs, airy silver-green crown
+    limb(0, 0, 0, 0.008, 0.045, 0.004, 0.02);
+    for (const [bx, bz] of [[0.04, 0.012], [-0.035, 0.02], [0.004, -0.04]]) limb(0.008, 0.04, 0.004, bx, 0.085, bz, 0.009);
+    for (const [dx, dy, dz, r, k] of [[0.045, 0.105, 0.015, 0.045, 0], [-0.04, 0.1, 0.025, 0.046, 1], [0.0, 0.098, -0.045, 0.042, 2], [0.0, 0.125, 0.0, 0.048, 1], [0.03, 0.09, -0.03, 0.03, 0]]) blob(M.olive, dx, dy, dz, r, 0.72, k);
   } else if (kind === 'citrus') {
-    trunk(0.04, 0.01);
-    put(grp, ico(1), M.citrus, 0, 0.075, 0).scale.setScalar(0.05);
-    for (let k = 0; k < 5; k++) { const a = k * 1.3 + seed; put(grp, geoCache.fruit ||= new THREE.SphereGeometry(1, 6, 5), M.orange, Math.cos(a) * 0.045, 0.06 + 0.012 * (k % 3), Math.sin(a) * 0.045).scale.setScalar(0.009); }
-  } else if (kind === 'palm') {
-    const t = trunk(0.22, 0.011); t.rotation.z = 0.06;
-    for (let k = 0; k < 7; k++) { const a = k / 7 * 6.283; const f = put(grp, geoCache.frond ||= new THREE.ConeGeometry(0.018, 0.13, 4), M.pine, Math.cos(a) * 0.05, 0.215, Math.sin(a) * 0.05); f.rotation.set(Math.sin(a) * 1.9, 0, -Math.cos(a) * 1.9); f.scale.z = 0.4; }
-  } else if (kind === 'oak') { // scrub oak / carob: low round crown
-    trunk(0.05, 0.014);
-    for (const [dx, dy, dz, r] of [[0, 0.085, 0, 0.07], [0.04, 0.07, 0.03, 0.05], [-0.045, 0.075, -0.02, 0.055]]) put(grp, ico(1), M.oak, dx, dy, dz).scale.set(r, r * 0.8, r);
-  } else if (kind === 'cedar') { // layered conifer of the uplands
-    trunk(0.08, 0.012);
-    for (let k = 0; k < 3; k++) put(grp, geoCache.cyp ||= new THREE.ConeGeometry(1, 1, 7), M.cypress, 0, 0.1 + k * 0.065, 0).scale.set(0.075 - k * 0.02, 0.11, 0.075 - k * 0.02);
+    trunk(0.04, 0.009);
+    blob(M.citrus, 0, 0.078, 0, 0.05, 0.9); blob(M.citrus, 0.02, 0.066, 0.015, 0.035, 0.85, 1);
+    for (let k = 0; k < 6; k++) { const a = k * 1.3 + seed; put(grp, geoCache.fruit ||= new THREE.SphereGeometry(1, 5, 4), M.orange, Math.cos(a) * 0.046, 0.058 + 0.014 * (k % 3), Math.sin(a) * 0.046).scale.setScalar(0.0085); }
+  } else if (kind === 'palm') { // date palm: ringed leaning trunk, arching fronds, dry skirt, fruit clusters
+    const H = 0.2 + h1 * 0.05; let px = 0, py = 0;
+    for (let k = 0; k < 4; k++) { const nx = px + 0.012 * (k + 1) * 0.6, ny = py + H / 4; limb(px, py, 0, nx, ny + 0.004, 0, 0.0125 - k * 0.001); px = nx; py = ny; }
+    put(grp, geoCache.palmHead ||= new THREE.IcosahedronGeometry(1, 0), M.trunk, px, py, 0).scale.set(0.02, 0.016, 0.02);
+    const F = frondGeo();
+    for (let k = 0; k < 9; k++) { const a = k / 9 * 6.283 + h2, f = put(grp, F, M.palm, px, py + 0.005, 0); f.rotation.set(0, -a, 0.55 - (k % 3) * 0.32); f.scale.setScalar(0.85 + (k % 2) * 0.2); }
+    for (let k = 0; k < 4; k++) { const a = k / 4 * 6.283 + 0.6 + h2, f = put(grp, F, M.palmDry, px, py - 0.004, 0); f.rotation.set(0, -a, -0.95); f.scale.setScalar(0.6); }
+    for (let k = 0; k < 2; k++) put(grp, geoCache.fruit ||= new THREE.SphereGeometry(1, 5, 4), M.orange, px + Math.cos(k * 3 + h1 * 6) * 0.022, py - 0.02, Math.sin(k * 3 + h1 * 6) * 0.022).scale.set(0.01, 0.016, 0.01);
+  } else if (kind === 'oak') { // kermes oak / carob: forked trunk under a dense rounded crown
+    limb(0, 0, 0, 0.005, 0.04, 0, 0.016);
+    for (const [bx, bz] of [[0.035, 0.015], [-0.035, -0.01]]) limb(0.005, 0.035, 0, bx, 0.07, bz, 0.009);
+    for (const [dx, dy, dz, r, k] of [[0, 0.09, 0, 0.068, 0], [0.045, 0.076, 0.03, 0.048, 1], [-0.05, 0.08, -0.02, 0.052, 2], [0.0, 0.07, -0.05, 0.04, 1]]) blob(M.oak, dx, dy, dz, r, 0.82, k);
+  } else if (kind === 'cedar') { // Taurus cedar: straight trunk, wide flat tiers of branches, flattened top
+    trunk(0.3, 0.012);
+    const tier = geoCache.cedarTier ||= lumpy('cedarTier', new THREE.ConeGeometry(1, 1, 8, 1), 0.2, 5);
+    for (let k = 0; k < 5; k++) { const r = 0.098 - k * 0.016 + (k % 2) * 0.008, t = put(grp, tier, M.cedar, (hash(seed, k) - 0.5) * 0.012, 0.085 + k * 0.05, (hash(k, seed) - 0.5) * 0.012); t.scale.set(r, 0.05, r); t.rotation.y = k * 0.9; }
+    put(grp, tier, M.cedar, 0, 0.325, 0).scale.set(0.03, 0.03, 0.03);
   } else if (kind === 'reed') {
-    for (let k = 0; k < 5; k++) { const b = put(grp, geoCache.cyp ||= new THREE.ConeGeometry(1, 1, 7), M.reed, Math.cos(k * 2.4) * 0.012, 0.03, Math.sin(k * 2.4) * 0.012); b.scale.set(0.006, 0.06 + (k % 3) * 0.012, 0.006); b.rotation.z = (k - 2) * 0.12; }
-  } else { // shrub
-    put(grp, ico(0), M.shrub, 0, 0.02, 0).scale.set(0.035, 0.026, 0.035);
+    for (let k = 0; k < 7; k++) { const b = put(grp, geoCache.reedB ||= new THREE.ConeGeometry(1, 1, 4), M.reed, Math.cos(k * 2.4) * 0.014, 0.035 + (k % 3) * 0.006, Math.sin(k * 2.4) * 0.014); b.scale.set(0.005, 0.07 + (k % 3) * 0.012, 0.005); b.rotation.set(Math.sin(k * 2.4) * 0.16, 0, -Math.cos(k * 2.4) * 0.16); }
+    for (let k = 0; k < 2; k++) put(grp, geoCache.reedB, M.palmDry, k * 0.016 - 0.008, 0.095, 0.004).scale.set(0.008, 0.03, 0.008); // plumes
+  } else { // maquis shrub
+    blob(M.shrub, 0, 0.02, 0, 0.034, 0.75); if (h1 > 0.5) blob(M.shrub, 0.025, 0.016, 0.012, 0.022, 0.75, 1);
   }
   return grp;
 }
@@ -446,119 +489,7 @@ export function scatter(g, kind, n, area, Y, seed = 1, sMin = 0.7, sMax = 1.2, o
     placed++;
   }
 }
-// Roman figures, built 1 unit tall (feet at y = 0, facing +z) and scaled down to the diorama.
-// i picks the type: 0 citizen in a toga, 1 matron in stola and palla, 2 legionary, 3 labourer with an amphora,
-// 4 magistrate in a purple-bordered toga, 5 traveller in a hooded cloak.
-const FIG_H = 0.066;
-const figMat = (k, color, o = {}) => mat('fig-' + k, () => std({ color, roughness: 0.85, ...o }));
-const F = {
-  get toga() { return figMat('toga', 0xf3ecdb); }, get tunic() { return figMat('tunic', 0xe2d6bb); }, get purple() { return figMat('purple', 0x6e2148); },
-  get red() { return figMat('red', 0xa32a22); }, get steel() { return figMat('steel', 0xa9aeb4, { roughness: 0.4, metalness: 0.8 }); },
-  get leather() { return figMat('leather', 0x5b3a22); }, get hair() { return figMat('hair', 0x33241a); }, get grey() { return figMat('greyhair', 0x9a948c); },
-  get terracotta() { return figMat('terracotta', 0xb5653a); }, get gold() { return figMat('gold', 0xd2a941, { roughness: 0.4, metalness: 0.7 }); },
-  get undyed() { return figMat('undyed', 0x9b7a4e); }, get cloak() { return figMat('cloak', 0x5a4636); },
-  dye(n) { const c = [0xc98a2b, 0x2f6a8c, 0x5f8a56, 0xa8455e, 0x3f8f8a, 0xd0b060][n % 6]; return figMat('dye' + (n % 6), c); },
-};
-const lathe = (key, pts, seg = 10) => (geoCache[key] ||= new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r, y)), seg));
-function limb(grp, material, r, x0, y0, z0, x1, y1, z1) {
-  const a = new THREE.Vector3(x0, y0, z0), b = new THREE.Vector3(x1, y1, z1), len = a.distanceTo(b);
-  const m = put(grp, geoCache['limb' + r] ||= new THREE.CapsuleGeometry(r, 1, 2, 6), material, (x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
-  m.scale.y = len / (1 + 2 * r) ; m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.sub(a).normalize());
-  return m;
-}
-export function person(g, x, z, y = 0, i = 0, s = 1) {
-  const grp = new THREE.Group(), h1 = hash(x * 91.7 + i, z * 57.3), h2 = hash(z * 33.1, x * 71.9 + i), type = ((i % 6) + 6) % 6;
-  grp.position.set(x, y, z); grp.scale.setScalar(FIG_H * s * (0.94 + h2 * 0.12)); grp.rotation.y = h1 * Math.PI * 2; g.add(grp);
-  const P = (geo, material, px, py, pz) => put(grp, geo, material, px, py, pz);
-  const sph = geoCache.figSph ||= new THREE.SphereGeometry(1, 10, 8);
-  const longRobe = (material) => { const m = P(lathe('robe', [[0.02, 0], [0.19, 0], [0.175, 0.1], [0.13, 0.42], [0.125, 0.56], [0.15, 0.7], [0.165, 0.79], [0.12, 0.835], [0.05, 0.86]]), material, 0, 0, 0); m.scale.z = 0.72; return m; };
-  const shortTunic = (material, legs = M.skin) => {
-    const m = P(lathe('tunic', [[0.02, 0.36], [0.17, 0.36], [0.15, 0.46], [0.125, 0.57], [0.15, 0.7], [0.165, 0.79], [0.12, 0.835], [0.05, 0.86]]), material, 0, 0, 0); m.scale.z = 0.72;
-    for (const sd of [-1, 1]) { limb(grp, legs, 0.042, sd * 0.065, 0.4, 0, sd * 0.07, 0.05, 0); P(geoCache.figFoot ||= new THREE.BoxGeometry(0.075, 0.035, 0.15), F.leather, sd * 0.07, 0.018, 0.03); }
-    return m;
-  };
-  const head = (hairMat) => {
-    const hd = P(sph, M.skin, 0, 0.925, 0); hd.scale.set(0.078, 0.088, 0.082);
-    P(geoCache.figNeck ||= new THREE.CylinderGeometry(0.035, 0.04, 0.06, 6), M.skin, 0, 0.855, 0);
-    if (hairMat) { const hr = P(geoCache.figHair ||= new THREE.SphereGeometry(1, 10, 6, 0, Math.PI * 2, 0, Math.PI * 0.55), hairMat, 0, 0.935, -0.012); hr.scale.set(0.084, 0.09, 0.088); }
-  };
-  const arm = (sd, material, ex, ey, ez, hx, hy, hz) => { // shoulder → elbow in a sleeve, elbow → hand bare
-    const sx = sd * 0.165;
-    limb(grp, material, 0.04, sx, 0.77, 0, sx + sd * ex, ey, ez); limb(grp, M.skin, 0.03, sx + sd * ex, ey, ez, sx + sd * hx, hy, hz);
-    return [sx + sd * hx, hy, hz];
-  };
-  const belt = (material, by = 0.57, r = 0.128) => { const b = P(geoCache.figBelt ||= new THREE.TorusGeometry(1, 0.13, 5, 12), material, 0, by, 0); b.rotation.x = Math.PI / 2; b.scale.set(r, r * 0.74, r); };
-  // the toga: a heavy band from the left shoulder across the chest to the right hip, a second sweep round the knees, and folds over the left forearm
-  const toga = (material, border) => {
-    const band = geoCache.figBand ||= new THREE.TorusGeometry(0.19, 0.05, 6, 14);
-    for (const [mt, sc, dy] of border ? [[material, 1, 0], [border, 1.035, -0.012]] : [[material, 1, 0]]) {
-      const t = P(band, mt, 0.005, 0.62 + dy, 0); t.rotation.set(Math.PI / 2 - 0.12, -0.78, 0); t.scale.set(sc, 0.74 * sc, mt === border ? 0.55 : 1.25);
-    }
-    const sweep = P(band, material, 0, 0.3, 0.01); sweep.rotation.set(Math.PI / 2 + 0.1, 0.42, 0); sweep.scale.set(0.88, 0.68, 1.25);
-    const sh = P(sph, material, -0.15, 0.79, 0); sh.scale.set(0.085, 0.06, 0.1);
-    const fold = P(sph, material, -0.215, 0.42, 0.14); fold.scale.set(0.04, 0.2, 0.06);
-    if (border) { const fb = P(sph, border, -0.215, 0.25, 0.14); fb.scale.set(0.042, 0.035, 0.062); }
-  };
-
-  if (type === 0 || type === 4) {
-    longRobe(F.tunic);
-    for (const sd of [-1, 1]) P(geoCache.figClavus ||= new THREE.BoxGeometry(0.018, 0.5, 0.01), F.purple, sd * 0.05, 0.28, 0.1 + 0.012); // clavi on the tunic
-    toga(F.toga, type === 4 ? F.purple : null);
-    head(type === 4 ? F.grey : F.hair);
-    arm(-1, F.toga, 0.03, 0.6, 0.06, 0.05, 0.6, 0.2);
-    if (type === 4) { const [hx, hy, hz] = arm(1, F.tunic, 0.1, 0.72, 0.12, 0.16, 0.93, 0.2); const sc = P(geoCache.figScroll ||= new THREE.CylinderGeometry(0.02, 0.02, 0.13, 6), F.toga, hx, hy + 0.03, hz); sc.rotation.z = 0.5; }
-    else arm(1, F.tunic, 0.035, 0.58, 0.02, 0.03, 0.42, 0.06);
-  } else if (type === 1) {
-    const stola = F.dye(Math.floor(h2 * 6)), palla = F.dye(Math.floor(h2 * 6) + 2 + Math.floor(h1 * 3));
-    longRobe(stola); belt(F.gold, 0.63, 0.14);
-    const hem = P(lathe('hem', [[0.192, 0.0], [0.194, 0.05], [0.182, 0.055]]), palla, 0, 0, 0); hem.scale.z = 0.72;
-    head(F.hair);
-    const back0 = mat('fig-pallaDS' + palla.color.getHex(), () => std({ color: palla.color, roughness: 0.85, side: THREE.DoubleSide }));
-    // palla: drawn over the head as a veil, falling down the back and wrapped across the body
-    const veil = P(geoCache.figVeil ||= new THREE.SphereGeometry(1, 12, 8, Math.PI * 0.82, Math.PI * 1.36, 0, Math.PI * 0.66), back0, 0, 0.93, -0.012); veil.scale.set(0.098, 0.108, 0.105);
-    const back = P(geoCache.figBack ||= new THREE.CylinderGeometry(0.15, 0.19, 0.62, 8, 1, true, Math.PI * 0.5, Math.PI), back0, 0, 0.56, -0.005); back.scale.z = 0.8;
-    const wrap = P(geoCache.figBand ||= new THREE.TorusGeometry(0.19, 0.05, 6, 14), palla, 0, 0.56, 0.005); wrap.rotation.set(Math.PI / 2 - 0.1, 0.5, 0); wrap.scale.set(0.93, 0.7, 1.5);
-    arm(-1, palla, 0.02, 0.6, 0.07, -0.04, 0.63, 0.19); arm(1, stola, 0.03, 0.58, 0.02, 0.03, 0.43, 0.05);
-  } else if (type === 2) {
-    shortTunic(F.red);
-    // lorica segmentata: banded cuirass, shoulder plates, apron of studded straps
-    const cu = P(lathe('cuirass', [[0.03, 0.5], [0.15, 0.5], [0.148, 0.56], [0.158, 0.565], [0.16, 0.63], [0.168, 0.635], [0.17, 0.7], [0.178, 0.705], [0.178, 0.79], [0.12, 0.84], [0.05, 0.865]]), F.steel, 0, 0, 0); cu.scale.z = 0.76;
-    for (const sd of [-1, 1]) { const sp = P(sph, F.steel, sd * 0.17, 0.79, 0); sp.scale.set(0.075, 0.045, 0.085); }
-    belt(F.leather, 0.5, 0.15);
-    for (let k = -1; k <= 1; k++) P(geoCache.figStrap ||= new THREE.BoxGeometry(0.022, 0.11, 0.012), F.gold, k * 0.032, 0.435, 0.118);
-    head(null);
-    const hl = P(geoCache.figHelm ||= new THREE.SphereGeometry(1, 10, 6, 0, Math.PI * 2, 0, Math.PI * 0.56), F.steel, 0, 0.94, 0); hl.scale.set(0.092, 0.095, 0.097);
-    P(geoCache.figNeckG ||= new THREE.BoxGeometry(0.16, 0.02, 0.08), F.steel, 0, 0.895, -0.085).rotation.x = 0.5;
-    for (const sd of [-1, 1]) P(geoCache.figCheek ||= new THREE.BoxGeometry(0.014, 0.08, 0.05), F.gold, sd * 0.082, 0.9, 0.025);
-    P(geoCache.figCrest ||= new THREE.BoxGeometry(0.03, 0.075, 0.2), F.red, 0, 1.055, -0.005);
-    // scutum on the left arm, pilum grounded in the right hand
-    arm(-1, F.red, 0.04, 0.6, 0.05, 0.03, 0.56, 0.14);
-    const sc = P(geoCache.figScutum ||= new THREE.CylinderGeometry(0.2, 0.2, 0.56, 8, 1, true, -0.62, 1.24), mat('fig-scutum', () => std({ color: 0xa32a22, roughness: 0.7, side: THREE.DoubleSide })), -0.21, 0.5, -0.02);
-    sc.rotation.y = -0.35;
-    const boss = P(sph, F.gold, -0.275, 0.5, 0.165); boss.scale.set(0.04, 0.04, 0.025); boss.rotation.y = -0.35;
-    const [hx, , hz] = arm(1, F.red, 0.05, 0.62, 0.05, 0.1, 0.6, 0.13);
-    P(geoCache.figPilum ||= new THREE.CylinderGeometry(0.011, 0.011, 1.2, 5), F.leather, hx, 0.6, hz);
-    P(geoCache.figPilumTip ||= new THREE.ConeGeometry(0.02, 0.2, 5), F.steel, hx, 1.3, hz);
-  } else if (type === 3) {
-    shortTunic(h2 > 0.5 ? F.undyed : F.dye(5)); belt(F.leather);
-    head(F.hair);
-    // exomis worn off one shoulder, an amphora carried on the other
-    arm(1, M.skin, 0.035, 0.58, 0.03, 0.03, 0.43, 0.07);
-    const [hx, hy, hz] = arm(-1, F.undyed, 0.07, 0.86, 0.06, 0.0, 1.0, 0.05);
-    const am = P(lathe('amphora', [[0.0, -0.17], [0.03, -0.12], [0.075, 0.02], [0.08, 0.1], [0.04, 0.17], [0.028, 0.24], [0.045, 0.26]], 8), F.terracotta, -0.16, 0.99, -0.02); am.rotation.set(Math.PI / 2 - 0.25, 0, 0.1);
-    if (h1 > 0.4) { const hat = P(geoCache.figHat ||= new THREE.ConeGeometry(0.16, 0.07, 10), figMat('straw', 0xd8bd7a), 0, 1.02, 0); hat.userData.fig = 1; }
-  } else {
-    shortTunic(F.dye(1), F.leather);
-    // paenula: a bell-shaped travelling cloak with its hood thrown back, and a walking staff
-    const ck = P(lathe('paenula', [[0.02, 0.3], [0.225, 0.3], [0.215, 0.45], [0.195, 0.66], [0.185, 0.79], [0.13, 0.85], [0.05, 0.875]]), h2 > 0.5 ? F.cloak : F.dye(2), 0, 0, 0); ck.scale.z = 0.85;
-    const hood = P(sph, ck.material, 0, 0.86, -0.085); hood.scale.set(0.085, 0.07, 0.07);
-    head(h1 > 0.5 ? F.hair : F.grey);
-    const [hx, , hz] = arm(1, ck.material, 0.07, 0.62, 0.08, 0.12, 0.66, 0.17);
-    P(geoCache.figStaff ||= new THREE.CylinderGeometry(0.014, 0.017, 1.05, 5), F.leather, hx, 0.525, hz);
-    const bag = P(sph, F.leather, -0.2, 0.47, 0.03); bag.scale.set(0.06, 0.08, 0.075);
-  }
-  return grp;
-}
+export { person } from './figures.js';
 export function boulder(g, x, y, z, s, seed = 1, material = M.rock) {
   const m = put(g, geoCache.boulder ||= new THREE.DodecahedronGeometry(1, 0), material, x, y, z);
   m.scale.set(s * (0.8 + hash(seed, 1) * 0.6), s * (0.5 + hash(seed, 2) * 0.5), s * (0.8 + hash(seed, 3) * 0.6)); m.rotation.set(seed, seed * 2.3, seed * 0.7);
