@@ -7,12 +7,20 @@ import { WORLD, lonLatToXZ, metresToY } from './geo.js';
 import { loadHeights, makeSampler, coastDistance, buildTerrain, buildSea } from './terrain.js';
 import { buildMonument, galley, BASE_DEPTH } from './monuments/index.js';
 import { SITES, ROADS, SOURCES } from './sites.js';
-import NARRATION from './narration.json';
+import { UI, SITES_TR, NARRATION } from './i18n.js';
 import RIVERS from './rivers.json';
 import { Sound } from './audio.js';
 
 const $ = (s) => document.querySelector(s);
 const canvas = $('#scene');
+
+// ---------- language ----------
+const store = { get: (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* private mode */ } } };
+let lang = new URLSearchParams(location.search).get('lang') || store.get('lang') || ((navigator.language || '').toLowerCase().startsWith('tr') ? 'tr' : 'en');
+if (!UI[lang]) lang = 'en';
+const T = () => UI[lang];
+// a site with its texts in the current language (coordinates, model and sources are shared)
+const loc = (s) => (lang === 'tr' ? { ...s, ...SITES_TR[s.id] } : s);
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // ---------- renderer / scene ----------
@@ -21,7 +29,7 @@ let renderer;
 try {
   renderer = new THREE.WebGLRenderer({ canvas, antialias: !LOW, powerPreference: 'high-performance' });
 } catch (e) {
-  $('#loading').textContent = 'This map needs WebGL, which this browser or device could not start.';
+  $('#loading').textContent = T().noWebgl;
   throw e;
 }
 renderer.setPixelRatio(LOW ? 1 : Math.min(devicePixelRatio, 2));
@@ -101,6 +109,8 @@ async function init() {
   buildClouds();
   buildMapLabels();
   buildUI();
+  state.ready = true;
+  setLang(lang);
   applyLighting();
   resize();
   controls.target.set(8, 0, 22);
@@ -142,7 +152,7 @@ function buildSites() {
 
     const el = document.createElement('div');
     el.className = 'label';
-    el.innerHTML = `<span class="num">${i + 1}</span><span class="txt">${s.name}<small>${s.modern.split(' · ')[0]}</small></span>`;
+    el.innerHTML = `<span class="num">${i + 1}</span><span class="txt"></span>`;
     el.addEventListener('click', () => select(i));
     // labels sit above the canvas: pass zooming through to the map
     el.addEventListener('wheel', (e) => { e.preventDefault(); canvas.dispatchEvent(new WheelEvent('wheel', e)); }, { passive: false });
@@ -382,12 +392,15 @@ function goHome() {
 }
 
 // ---------- narration ----------
-let captionTimer = 0, narrateToken = 0;
-function hideCaption() { $('#caption').hidden = true; clearTimeout(captionTimer); }
+let captionTimer = 0, narrateToken = 0, current = null;
+function hideCaption() { $('#caption').hidden = true; clearTimeout(captionTimer); current = null; }
+// say the current line again — after the language or the sound setting changed under it
+function renarrate() { if (current) narrate(current.key, current.onEnd); }
 async function narrate(key, onEnd) {
-  const text = NARRATION[key];
+  const text = NARRATION[lang][key];
   const mine = ++narrateToken;
   hideCaption();
+  current = { key, onEnd };
   const dur = await sound.narrate(key, () => { hideCaption(); onEnd && onEnd(); });
   if (mine !== narrateToken) return; // superseded by a newer narration
   $('#caption').textContent = text; $('#caption').hidden = false;
@@ -396,9 +409,9 @@ async function narrate(key, onEnd) {
 }
 
 // ---------- tour ----------
+function setTourButton() { $('#btn-tour').textContent = state.tour ? T().stopTour : T().tour; $('#btn-tour').classList.toggle('on', state.tour); }
 function startTour() {
-  state.tour = true;
-  $('#btn-tour').textContent = '■ Stop tour'; $('#btn-tour').classList.add('on');
+  state.tour = true; setTourButton();
   tourStep(state.selected >= 0 ? state.selected : 0);
 }
 function tourStep(i) {
@@ -410,32 +423,31 @@ function tourStep(i) {
   });
 }
 function stopTour() {
-  state.tour = false; clearTimeout(captionTimer);
-  $('#btn-tour').textContent = '▶ Tour'; $('#btn-tour').classList.remove('on');
+  state.tour = false; clearTimeout(captionTimer); setTourButton();
 }
 
 // ---------- UI ----------
-function renderPanel(i) {
-  const s = SITES[i];
+function renderPanel(i, keepScroll = false) {
+  const s = loc(SITES[i]), t = T();
   const esc = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;');
   $('#panel-body').innerHTML = `
-    <div class="eyebrow">Site ${i + 1} of ${SITES.length}</div>
+    <div class="eyebrow">${t.siteOf(i + 1, SITES.length)}</div>
     <h2>${esc(s.name)}</h2>
-    <div class="modern">today: ${esc(s.modern)}</div>
-    <button class="listen" id="listen">♪ Listen</button>
+    <div class="modern">${t.today}: ${esc(s.modern)}</div>
+    <button class="listen" id="listen">${t.listen}</button>
     <div class="tagline">${esc(s.tagline)}</div>
     <div class="chips">${s.era.map((e) => `<span>${esc(e)}</span>`).join('')}</div>
     ${s.body.map((p) => `<p>${esc(p)}</p>`).join('')}
-    <h3>Look for</h3><ul>${s.look.map((l) => `<li>${esc(l)}</li>`).join('')}</ul>
+    <h3>${t.lookFor}</h3><ul>${s.look.map((l) => `<li>${esc(l)}</li>`).join('')}</ul>
     <div class="fun">${esc(s.fun)}</div>
-    <h3>How we know</h3><p class="evidence">${esc(s.evidence)}</p>
-    <h3>Sources</h3><ul class="src">${s.sources.map((k) => `<li><a href="${SOURCES[k].url}" target="_blank" rel="noopener">${esc(SOURCES[k].label)}</a></li>`).join('')}</ul>
-    <div class="coords">${s.lat.toFixed(4)}° N, ${s.lon.toFixed(4)}° E · <a href="https://www.openstreetmap.org/?mlat=${s.lat}&mlon=${s.lon}#map=15/${s.lat}/${s.lon}" target="_blank" rel="noopener">open map</a></div>`;
-  $('#panel-body').scrollTop = 0;
+    <h3>${t.howWeKnow}</h3><p class="evidence">${esc(s.evidence)}</p>
+    <h3>${t.sources}</h3><ul class="src">${s.sources.map((k) => `<li><a href="${SOURCES[k].url}" target="_blank" rel="noopener">${esc(SOURCES[k].label)}</a></li>`).join('')}</ul>
+    <div class="coords">${s.lat.toFixed(4)}° N, ${s.lon.toFixed(4)}° E · <a href="https://www.openstreetmap.org/?mlat=${s.lat}&mlon=${s.lon}#map=15/${s.lat}/${s.lon}" target="_blank" rel="noopener">${t.openMap}</a></div>`;
+  if (!keepScroll) $('#panel-body').scrollTop = 0;
   $('#listen').onclick = async () => { if (state.tour) stopTour(); if (!sound.enabled) await setSound(true); narrate(s.id); };
   $('#counter').textContent = `${i + 1} / ${SITES.length}`;
   const panel = $('#panel');
-  panel.hidden = false; panel.style.animation = 'none'; void panel.offsetWidth; panel.style.animation = '';
+  panel.hidden = false; if (!keepScroll) { panel.style.animation = 'none'; void panel.offsetWidth; panel.style.animation = ''; }
   document.body.classList.add('panel-open');
   applyViewOffset();
   document.querySelectorAll('#sitelist button').forEach((b, k) => b.classList.toggle('active', k === i));
@@ -444,30 +456,60 @@ function renderPanel(i) {
 async function setSound(on) {
   if (on) on = (await sound.enable().catch(() => false)) !== false && sound.enabled; else sound.disable();
   const b = $('#btn-sound');
-  b.setAttribute('aria-pressed', String(on)); b.textContent = on ? '🔊 Sound' : '🔇 Sound';
-  if (!on) { hideCaption(); if (state.tour) stopTour(); }
+  b.setAttribute('aria-pressed', String(on)); b.textContent = (on ? '🔊 ' : '🔇 ') + T().sound;
+  renarrate(); // a line in progress carries on: spoken when sound is on, as a timed caption when it is off
 }
 
-function begin(withSound, skipFlight = false) {
+function setLang(to) {
+  lang = to; store.set('lang', to); sound.lang = to;
+  const t = T(), set = (sel, text) => { $(sel).textContent = text; };
+  document.documentElement.lang = to; document.title = t.docTitle;
+  set('#title .sub', t.sub); set('#intro-eyebrow', t.introEyebrow); set('#intro-text', t.introText);
+  set('#begin-sound', t.beginSound); set('#begin-quiet', t.beginQuiet); set('#intro-lang', t.langIntro);
+  if (!state.ready) set('#loading', t.loading);
+  set('#hint', matchMedia('(pointer: coarse)').matches ? t.hintTouch : t.hint);
+  set('#prev', t.prev); set('#next', t.next); set('#north', t.north); set('#legend-src', t.sources); set('#btn-roads', t.roads); set('#btn-lang', t.langBtn);
+  set('#btn-dusk', state.duskTarget ? t.dusk : t.day); set('#btn-sound', (sound.enabled ? '🔊 ' : '🔇 ') + t.sound); setTourButton();
+  $('#btn-home').innerHTML = `⌂ <span class="wide">${t.overview}</span><span class="narrow">${t.map}</span>`;
+  $('#legend-text').innerHTML = `${t.legend}<span class="wide">${t.legendLong}</span>.`;
+  const attrs = { '#btn-tour': t.tTour, '#btn-sound': t.tSound, '#btn-dusk': t.tDusk, '#btn-roads': t.tRoads, '#btn-home': t.tHome, '#btn-lang': t.tLang, '#compass': t.northTitle };
+  for (const k in attrs) $(k).title = attrs[k];
+  const aria = { '#panel-close': t.close, '#prev': t.prevAria, '#next': t.nextAria, '#sitelist': t.sitesAria, '#toolbar': t.controlsAria, '#scene': t.canvasAria };
+  for (const k in aria) $(k).setAttribute('aria-label', aria[k]);
+  const btns = document.querySelectorAll('#sitelist button');
+  SITES.forEach((raw, i) => {
+    const s = loc(raw);
+    if (btns[i]) { btns[i].querySelector('.t').textContent = s.name; btns[i].title = `${s.name} — ${s.modern}`; }
+    if (siteObjs[i]) siteObjs[i].el.querySelector('.txt').innerHTML = `${s.name}<small>${s.modern.split(' · ')[0]}</small>`;
+  });
+  if (state.selected >= 0) renderPanel(state.selected, true);
+  renarrate();
+}
+
+// entering starts the guided tour (after the spoken or captioned welcome); a deep link goes straight to its site instead
+function begin(withSound, direct = false) {
   if (state.started) return;
   state.started = true;
   $('#intro').classList.add('gone');
   for (const el of document.querySelectorAll('[inert]')) el.inert = false;
   $('#intro').inert = true; document.activeElement && document.activeElement.blur();
-  if (withSound) setSound(true).then(() => narrate('intro'));
-  if (!skipFlight) { const p = overviewPose(); flyTo(p.target, p.pos, 4.2); }
+  if (direct) return;
+  state.tour = true; setTourButton();
+  const welcome = () => narrate('intro', () => { if (state.tour) tourStep(0); });
+  if (withSound) setSound(true).then(welcome); else welcome();
+  const p = overviewPose(); flyTo(p.target, p.pos, 4.2);
 }
 
 function buildUI() {
   const list = $('#sitelist');
   SITES.forEach((s, i) => {
     const b = document.createElement('button');
-    b.innerHTML = `<span class="n">${i + 1}</span><span class="t">${s.name}</span>`;
-    b.title = `${s.name} — ${s.modern}`;
+    b.innerHTML = `<span class="n">${i + 1}</span><span class="t"></span>`;
     b.onclick = () => select(i);
     list.appendChild(b);
   });
-  if (matchMedia('(pointer: coarse)').matches) $('#hint').textContent = 'Drag to orbit · pinch to zoom · two fingers to pan · tap a beacon';
+  const toggleLang = () => setLang(lang === 'tr' ? 'en' : 'tr');
+  $('#btn-lang').onclick = toggleLang;
   $('#begin-sound').onclick = () => begin(true);
   $('#begin-quiet').onclick = () => begin(false);
   $('#panel-close').onclick = deselect;
@@ -480,7 +522,7 @@ function buildUI() {
   const toggleDusk = () => {
     state.duskTarget = state.duskTarget ? 0 : 1;
     $('#btn-dusk').setAttribute('aria-pressed', String(!!state.duskTarget));
-    $('#btn-dusk').textContent = state.duskTarget ? '☾ Golden hour' : '☀ Day';
+    $('#btn-dusk').textContent = state.duskTarget ? T().dusk : T().day;
   };
   $('#btn-dusk').onclick = toggleDusk;
   const toggleRoads = () => { state.roads = !state.roads; roadGroup.visible = state.roads; $('#btn-roads').setAttribute('aria-pressed', String(state.roads)); };
@@ -498,6 +540,7 @@ function buildUI() {
     else if (k === 'm') $('#btn-sound').click();
     else if (k === 'g') toggleDusk();
     else if (k === 'r') toggleRoads();
+    else if (k === 'l') toggleLang();
     else if (/^[0-9]$/.test(k)) select(k === '0' ? 9 : +k - 1);
   });
 
@@ -519,7 +562,7 @@ function buildUI() {
     if (i >= 0) select(i);
   });
   controls.addEventListener('start', () => { flight = null; controls.autoRotate = false; });
-  canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); $('#legend').textContent = 'The 3D view was interrupted — reload the page to continue.'; });
+  canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault(); $('#legend').textContent = T().lost; });
   addEventListener('resize', resize);
 }
 
@@ -657,4 +700,7 @@ function frame() {
   renderer.render(scene, camera);
 }
 
-init().catch((e) => { console.error(e); $('#loading').textContent = 'Could not load the map: ' + e.message; });
+// the language can be chosen while the terrain is still loading
+$('#intro-lang').onclick = () => setLang(lang === 'tr' ? 'en' : 'tr');
+setLang(lang);
+init().catch((e) => { console.error(e); $('#loading').textContent = T().loadFail + e.message; });

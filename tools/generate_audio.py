@@ -12,6 +12,7 @@ OUT = os.path.join(ROOT, "public", "audio")
 KEY = os.environ["ELEVENLABS_API_KEY"]
 API = "https://api.elevenlabs.io"
 VOICE = "JBFqnCBsd6RMkjVDRZzb"  # "George" - warm British storyteller
+VOICE_TR = "xbDrc2x8CZgoKHbSCuRg"  # "Nursel" - Turkish narrator
 TTS_MODELS = ["eleven_v4", "eleven_v3", "eleven_multilingual_v2"]  # best first, fall back
 
 SFX = {
@@ -35,11 +36,11 @@ def save(name, data):
         f.write(data)
     print(f"  wrote {name}.mp3 ({len(data)//1024} kB)")
 
-def tts(text):
+def tts(text, voice=None):
     last = None
     for model in TTS_MODELS:
         try:
-            return post(f"/v1/text-to-speech/{VOICE}?output_format=mp3_44100_128", {"text": text, "model_id": model}), model
+            return post(f"/v1/text-to-speech/{voice or VOICE}?output_format=mp3_44100_128", {"text": text, "model_id": model}), model
         except urllib.error.HTTPError as e:
             last = f"{model}: {e.code} {e.read()[:300]!r}"
             print("  !", last)
@@ -50,14 +51,15 @@ def main():
     force = "--force" in sys.argv
     os.makedirs(OUT, exist_ok=True)
     want = lambda n: (not args or n in args) and (force or not os.path.exists(os.path.join(OUT, n + ".mp3")))
-    narration = json.load(open(os.path.join(ROOT, "src", "narration.json")))
-    for key, text in narration.items():
-        name = "vo-" + key
-        if want(name):
-            print(name)
-            data, model = tts(text)
-            print("  model:", model)
-            save(name, data)
+    for src, prefix, voice in (("narration.json", "vo-", VOICE), ("narration.tr.json", "vo-tr-", VOICE_TR)):
+        narration = json.load(open(os.path.join(ROOT, "src", src), encoding="utf-8"))
+        for key, text in narration.items():
+            name = prefix + key
+            if want(name):
+                print(name)
+                data, model = tts(text, voice)
+                print("  model:", model)
+                save(name, data)
     for name, body in SFX.items():
         if want(name):
             print(name)

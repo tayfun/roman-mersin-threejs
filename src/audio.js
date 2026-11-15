@@ -11,6 +11,7 @@ export class Sound {
     this.loops = {};
     this.voice = null;
     this.onVoiceEnd = null;
+    this.lang = 'en';
   }
 
   async enable() {
@@ -95,7 +96,7 @@ export class Sound {
     this.stopVoice();
     if (!this.enabled) return false;
     const token = (this.voiceToken = Symbol());
-    const buf = await this.load('vo-' + key);
+    const buf = await this.load('vo-' + (this.lang === 'en' ? '' : this.lang + '-') + key);
     if (!buf || token !== this.voiceToken || !this.enabled) return false;
     const src = this.ctx.createBufferSource();
     src.buffer = buf;

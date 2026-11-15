@@ -37,28 +37,30 @@
     <button id="btn-dusk" title="Golden hour (G)" aria-pressed="false">☀ Day</button>
     <button id="btn-roads" title="Roman roads (R)" aria-pressed="true">Roads</button>
     <button id="btn-home" title="Whole map (H)">⌂ <span class="wide">Overview</span><span class="narrow">Map</span></button>
+    <button id="btn-lang" title="Türkçe (L)">TR</button>
   </div>
 
-  <div id="compass" title="North"><div id="needle"><span>N</span></div></div>
+  <div id="compass" title="North"><div id="needle"><span id="north">N</span></div></div>
 
   <div id="caption" hidden></div>
 
   <footer id="legend">
-    Real elevation (SRTM), ×2.6 vertical<span class="wide">. Monuments are stylised miniatures, not to scale. Roads are schematic; rivers follow DEM valley floors</span>.
-    <a href="https://github.com/tayfun/roman-mersin-threejs/blob/main/SOURCES.md" target="_blank" rel="noopener">Sources</a>
+    <span id="legend-text">Real elevation (SRTM), ×2.6 vertical<span class="wide">. Monuments are stylised miniatures, not to scale. Roads are schematic; rivers follow DEM valley floors</span>.</span>
+    <a id="legend-src" href="https://github.com/tayfun/roman-mersin-threejs/blob/main/SOURCES.md" target="_blank" rel="noopener">Sources</a>
   </footer>
 
   <div id="intro">
     <div class="card">
-      <div class="eyebrow">A 3D map of Roman Mersin</div>
+      <div class="eyebrow" id="intro-eyebrow">A 3D map of Roman Mersin</div>
       <h1>CILICIA</h1>
-      <p>Pirates, Cleopatra, a city for Pompey and a cave for a monster. Ten Roman places on the real landscape of Türkiye’s Mediterranean coast.</p>
+      <p id="intro-text">Pirates, Cleopatra, a city for Pompey and a cave for a monster. Ten Roman places on the real landscape of Türkiye’s Mediterranean coast.</p>
       <div class="row">
-        <button id="begin-sound" class="primary" disabled>Enter with sound</button>
-        <button id="begin-quiet" disabled>Enter quietly</button>
+        <button id="begin-sound" class="primary" disabled>Start the tour with sound</button>
+        <button id="begin-quiet" disabled>Start the tour quietly</button>
       </div>
+      <button id="intro-lang">Türkçe</button>
       <div id="loading">Raising the Taurus mountains…</div>
-      <small id="hint">Drag to orbit · scroll to zoom · right-drag to pan · click a beacon</small>
+      <small id="hint">A guided tour starts first — stop it any time to explore. Drag to orbit · scroll to zoom · right-drag to pan · click a beacon</small>
     </div>
   </div>
   <script type="module" src="/src/main.js"></script>

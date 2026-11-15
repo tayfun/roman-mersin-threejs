@@ -26,7 +26,8 @@ button { font: inherit; cursor: pointer; }
 #title h1 { font: 700 40px/1 var(--caps); letter-spacing: .14em; margin: 2px 0; }
 #title .sub { font-style: italic; opacity: .9; }
 
-#sitelist { position: fixed; left: 16px; top: 118px; display: flex; flex-direction: column; gap: 4px; max-height: calc(100vh - 210px); overflow: auto; }
+#sitelist { position: fixed; left: 16px; top: 118px; display: flex; flex-direction: column; gap: 4px; max-height: calc(100vh - 210px); overflow: hidden auto; padding-right: 8px; scrollbar-width: none; }
+#sitelist::-webkit-scrollbar { display: none; }
 #sitelist button { display: flex; align-items: center; gap: 8px; background: rgba(20,28,36,.55); color: #f6ead0; border: 1px solid rgba(241,211,138,.25);
   border-radius: 4px; padding: 4px 12px 4px 5px; font: 500 12.5px var(--caps); letter-spacing: .05em; backdrop-filter: blur(6px); text-align: left; transition: background .2s, transform .2s; }
 #sitelist button:hover { background: rgba(156,47,34,.75); transform: translateX(3px); }
@@ -83,6 +84,7 @@ button { font: inherit; cursor: pointer; }
 #intro .card { text-align: center; color: #fff3d6; max-width: 560px; padding: 24px; text-shadow: 0 2px 14px rgba(0,0,0,.7); }
 #intro h1 { font: 700 clamp(48px, 11vw, 96px)/1 var(--caps); letter-spacing: .16em; margin: 8px 0 12px; }
 #intro p { font-size: 21px; line-height: 1.4; font-style: italic; }
+#intro-lang { background: none; border: 0; color: var(--gold); font: 500 12px var(--caps); letter-spacing: .08em; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; padding: 4px 8px; margin-bottom: 8px; }
 #intro .row { display: flex; gap: 10px; justify-content: center; margin: 22px 0 12px; flex-wrap: wrap; }
 #intro button { padding: 11px 22px; border-radius: 4px; border: 1px solid #f1d38a; background: rgba(20,28,36,.5); color: #fff3d6; font: 700 13px var(--caps); letter-spacing: .12em; }
 #intro button.primary { background: var(--red); }
@@ -97,7 +99,7 @@ button { font: inherit; cursor: pointer; }
 @media (max-width: 760px) {
   body { font-size: 16px; }
   #title { left: 14px; top: 10px; } #title h1 { font-size: 26px; } #title .sub { display: none; }
-  #sitelist { flex-direction: row; left: 0; right: 0; top: 66px; padding: 0 10px; max-height: none; overflow-x: auto; }
+  #sitelist { flex-direction: row; left: 0; right: 0; top: 66px; padding: 0 10px; max-height: none; overflow: auto hidden; }
   #sitelist button .t { display: none; } #sitelist button { padding: 4px; }
   #panel { left: 0; right: 0; top: auto; bottom: 0; width: 100%; height: 52vh; border-radius: 14px 14px 0 0; animation-name: rise; z-index: 5; }
   @keyframes rise { from { transform: translateY(60px); opacity: 0; } }
