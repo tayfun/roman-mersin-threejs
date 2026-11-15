@@ -623,7 +623,7 @@ function adaptQuality(dt) {
 // ---------- frame ----------
 const clock = new THREE.Clock();
 
-// In a background or unfocused tab nothing is drawn, played or advanced; everything picks up where it left off.
+// In a hidden tab (another tab in front, window minimised) nothing is drawn, played or advanced; everything picks up where it left off.
 function setPaused(p) {
   if (p === state.paused || !state.ready) return;
   state.paused = p;
@@ -635,9 +635,9 @@ function setPaused(p) {
     if (pending) arm();
   }
 }
-const checkPaused = () => setPaused(document.hidden || !document.hasFocus());
+const checkPaused = () => setPaused(document.hidden);
 window.__audioState = () => (sound.ctx ? sound.ctx.state : 'none');
-document.addEventListener('visibilitychange', checkPaused); addEventListener('blur', checkPaused); addEventListener('focus', checkPaused);
+document.addEventListener('visibilitychange', checkPaused);
 const v = new THREE.Vector3();
 function frame() {
   const rawDt = clock.getDelta(), dt = Math.min(rawDt, 0.05), t = clock.elapsedTime;
