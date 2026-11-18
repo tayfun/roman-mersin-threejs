@@ -3,7 +3,7 @@
 
 No river vector data is bundled, so each river is a least-cost path (cost grows with
 elevation) from an upstream point on the known river, via the ancient city on it, to the sea. This follows the real
-valley at the DEM's ~330 m resolution; it is not a surveyed centreline.
+valley at the DEM's ~260 m resolution; it is not a surveyed centreline.
 Output: src/rivers.json  ->  {name: [[lon, lat], ...]}
 """
 import heapq, json, os

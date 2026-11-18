@@ -1,8 +1,8 @@
 // Geographic frame shared by the heightmap builder (tools/build_heightmap.py) and the scene.
 export const BOUNDS = { W: 32.35, S: 35.85, E: 35.35, N: 37.5 };
-export const GRID = { w: 800, h: 574 };
+export const GRID = { w: 1024, h: 702 }; // tools/build_terrain_data.py
 export const HEIGHT_OFFSET = 3000; // metres added before 16-bit encoding
-export const VEX = 2.6; // vertical exaggeration
+export const VEX = 2.0; // vertical exaggeration (also baked into terrain-normal.jpg)
 
 const KM_LAT = 111.2;
 const KM_LON = KM_LAT * Math.cos(((BOUNDS.N + BOUNDS.S) / 2) * Math.PI / 180);

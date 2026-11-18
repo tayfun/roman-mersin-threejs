@@ -30,25 +30,6 @@ export function makeSampler(heights) {
   };
 }
 
-const C = (hex) => new THREE.Color(hex);
-const RAMP = [
-  [-400, C(0x1c3d55)], [-60, C(0x3d7f8a)], [-4, C(0xcdbf8f)],
-  [1, C(0xd4c594)], [25, C(0xb7b676)], [120, C(0x93a35a)], [450, C(0x74894a)],
-  [1000, C(0x55723f)], [1500, C(0x6c7a4c)], [1900, C(0x9a9069)], [2400, C(0xa39c8c)],
-  [2800, C(0xcfcdc6)], [3100, C(0xf6f5f0)],
-];
-const ROCK = C(0x9a8c74);
-function rampColor(h, out) {
-  if (h <= RAMP[0][0]) return out.copy(RAMP[0][1]);
-  for (let i = 1; i < RAMP.length; i++) {
-    if (h <= RAMP[i][0]) {
-      const t = (h - RAMP[i - 1][0]) / (RAMP[i][0] - RAMP[i - 1][0]);
-      return out.copy(RAMP[i - 1][1]).lerp(RAMP[i][1], t);
-    }
-  }
-  return out.copy(RAMP[RAMP.length - 1][1]);
-}
-const hash = (x, y) => { const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return s - Math.floor(s); };
 
 // Distance (km) from each water cell to the nearest land cell (two-pass chamfer transform).
 // Used instead of the DEM's bathymetry, which has tile seams offshore.
@@ -71,46 +52,27 @@ export function coastDistance(heights) {
   return d;
 }
 
-export function buildTerrain(heights0, dist, step = 1) {
+// Ground colour and lighting detail come from textures built from satellite land cover and the 30 m DEM
+// (tools/build_terrain_data.py); the mesh carries the large-scale relief.
+export function buildTerrain(heights0, dist, step = 1, low = false) {
   // optional decimation for low-power devices
   const w = Math.floor((GRID.w - 1) / step) + 1, h = Math.floor((GRID.h - 1) / step) + 1;
-  const heights = new Float32Array(w * h);
-  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
-    const k0 = j * step * GRID.w + i * step;
-    heights[j * w + i] = heights0[k0] >= 0.5 ? heights0[k0] : -Math.min(400, dist[k0] * 28) - 1;
-  }
   const geo = new THREE.PlaneGeometry(WORLD.w, WORLD.d, w - 1, h - 1);
   geo.rotateX(-Math.PI / 2);
   const pos = geo.attributes.position;
-  const col = new Float32Array(pos.count * 3);
-  const tmp = new THREE.Color();
-  const cell = WORLD.w / (w - 1) * 1000; // metres
-  const hash2 = (i, j) => hash(i * step, j * step);
-  for (let j = 0; j < h; j++) {
-    for (let i = 0; i < w; i++) {
-      const k = j * w + i;
-      const m = heights[k];
-      pos.setY(k, m < 0.5 ? metresToY(m) - 0.04 : metresToY(m));
-      // slope from neighbours → bare rock on steep ground
-      const l = heights[k - (i > 0 ? 1 : 0)], r = heights[k + (i < w - 1 ? 1 : 0)];
-      const u = heights[k - (j > 0 ? w : 0)], d = heights[k + (j < h - 1 ? w : 0)];
-      const slope = Math.hypot(r - l, d - u) / (2 * cell);
-      rampColor(m, tmp);
-      if (m > 1) {
-        tmp.lerp(ROCK, THREE.MathUtils.smoothstep(slope, 0.28, 0.75) * 0.75);
-        // the plateau behind the Taurus is drier steppe than the seaward slopes
-        const inland = THREE.MathUtils.smoothstep(-j / h + 0.42 + (i / w) * 0.18, 0, 0.25);
-        if (m > 900 && m < 2300) tmp.lerp(C(0xb3a273), inland * 0.55);
-        const n = (hash2(i, j) - 0.5) * 0.07 + (hash2(i >> 3, j >> 3) - 0.5) * 0.05;
-        tmp.offsetHSL(0, 0, n);
-      }
-      col[k * 3] = tmp.r; col[k * 3 + 1] = tmp.g; col[k * 3 + 2] = tmp.b;
-    }
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+    const k0 = Math.min(GRID.h - 1, j * step) * GRID.w + Math.min(GRID.w - 1, i * step);
+    const m = heights0[k0] >= 0.5 ? heights0[k0] : -Math.min(400, dist[k0] * 28) - 1;
+    pos.setY(j * w + i, m < 0.5 ? metresToY(m) - 0.04 : metresToY(m));
   }
-  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
   geo.computeVertexNormals();
-  const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, metalness: 0 });
-  // close-range ground detail: the DEM cells are ~330 m, so add procedural grain and scrub when zoomed in
+  const loader = new THREE.TextureLoader(), root = import.meta.env.BASE_URL, sfx = low ? '-lo' : '';
+  const map = loader.load(`${root}terrain-color${sfx}.jpg`);
+  map.colorSpace = THREE.SRGBColorSpace; map.anisotropy = 8;
+  const normalMap = loader.load(`${root}terrain-normal${sfx}.jpg`);
+  normalMap.anisotropy = 8;
+  const mat = new THREE.MeshStandardMaterial({ map, normalMap, normalMapType: THREE.ObjectSpaceNormalMap, roughness: 0.96, metalness: 0 });
+  // close-range grain: the textures are ~90 m per texel, so add fine variation when zoomed in
   mat.onBeforeCompile = (sh) => {
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vWp;')
@@ -121,14 +83,18 @@ export function buildTerrain(heights0, dist, step = 1) {
         float h21(vec2 p){ p = fract(p*vec2(123.34, 456.21)); p += dot(p, p+45.32); return fract(p.x*p.y); }
         float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.0-2.0*f);
           return mix(mix(h21(i), h21(i+vec2(1,0)), f.x), mix(h21(i+vec2(0,1)), h21(i+vec2(1,1)), f.x), f.y); }`)
-      .replace('#include <color_fragment>', `#include <color_fragment>
+      .replace('#include <map_fragment>', `#include <map_fragment>
         float dd = length(cameraPosition - vWp);
-        float fade = 1.0 - smoothstep(18.0, 110.0, dd);
-        float n = vn(vWp.xz*1.1)*0.45 + vn(vWp.xz*4.7)*0.33 + vn(vWp.xz*19.0)*0.22;
-        diffuseColor.rgb *= mix(1.0, 0.74 + 0.52*n, fade);
-        float veg = smoothstep(0.03, 0.12, vWp.y) * (1.0 - smoothstep(4.2, 5.2, vWp.y));
-        float scrub = smoothstep(0.55, 0.75, vn(vWp.xz*34.0)) * smoothstep(0.35, 0.6, vn(vWp.xz*2.3+7.0));
-        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.16, 0.27, 0.13), scrub*veg*0.55*(1.0 - smoothstep(10.0, 45.0, dd)));`);
+        float fade = 1.0 - smoothstep(6.0, 60.0, dd);
+        float n = vn(vWp.xz*6.0)*0.5 + vn(vWp.xz*23.0)*0.3 + vn(vWp.xz*71.0)*0.2;
+        diffuseColor.rgb *= mix(1.0, 0.86 + 0.28*n, fade);
+        // close up, break the forest colour into crowns and the open ground into stony, tufted patches
+        float near = 1.0 - smoothstep(4.0, 26.0, dd);
+        float canopy = smoothstep(0.03, 0.11, diffuseColor.g - diffuseColor.r);
+        float clump = vn(vWp.xz*31.0)*0.55 + vn(vWp.xz*97.0)*0.45;
+        diffuseColor.rgb *= mix(1.0, 0.66 + 0.62*clump, canopy*near);
+        float stone = smoothstep(0.62, 0.8, vn(vWp.xz*53.0 + 11.0));
+        diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb*1.16 + 0.03, stone*(1.0 - canopy)*near*0.6);`);
   };
   const land = new THREE.Mesh(geo, mat);
   land.receiveShadow = true;

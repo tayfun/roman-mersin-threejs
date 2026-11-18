@@ -4,7 +4,7 @@ import { Line2 } from 'three/addons/lines/Line2.js';
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import { WORLD, lonLatToXZ, metresToY } from './geo.js';
+import { WORLD, GRID, lonLatToXZ, metresToY } from './geo.js';
 import { loadHeights, makeSampler, coastDistance, buildTerrain, buildSea } from './terrain.js';
 import { buildMonument, galley, BASE_DEPTH } from './monuments/index.js';
 import { SITES, ROADS, SOURCES } from './sites.js';
@@ -84,6 +84,7 @@ scene.add(sky);
 const state = { paused: false, selected: -1, hovered: -1, tour: false, dusk: 0, duskTarget: 0, roads: true, started: false };
 const sound = new Sound();
 const siteObjs = [];
+const GROUNDED = 0.012; // model height at which a diorama's own ground is flush with the map
 let sampleH = () => 0;
 let sea, roadGroup, roadMats = [], riverMat, trees, ships = [], clouds = [], mapLabels = [];
 const groundY = (x, z) => metresToY(Math.max(sampleH(x, z), 0));
@@ -92,20 +93,33 @@ const groundY = (x, z) => metresToY(Math.max(sampleH(x, z), 0));
 async function init() {
   // fonts are baked into canvas textures and measured for label layout, so wait for them (briefly)
   const fonts = document.fonts ? Promise.all([document.fonts.load('600 96px Cinzel'), document.fonts.load('italic 500 96px "EB Garamond"')]) : Promise.resolve();
-  const [heights] = await Promise.all([
+  const [heights, , cover] = await Promise.all([
     loadHeights(import.meta.env.BASE_URL + 'heightmap.png'),
     Promise.race([fonts, new Promise((r) => setTimeout(r, 2500))]).catch(() => {}),
+    loadLandcover(import.meta.env.BASE_URL + 'landcover.png'),
   ]);
+  // level a small terrace under each site (flat to ~1.3 km, easing back to the real slope by ~2.6 km), so the
+  // places can sit in the landscape at ground level instead of on a raised stand
+  for (const s of SITES) {
+    const [x, z] = lonLatToXZ(s.lon, s.lat), ci = (x / WORLD.w + 0.5) * (GRID.w - 1), cj = (z / WORLD.d + 0.5) * (GRID.h - 1);
+    const kx = WORLD.w / (GRID.w - 1), kz = WORLD.d / (GRID.h - 1), R = 2.7;
+    const h0 = Math.max(1, heights[Math.round(cj) * GRID.w + Math.round(ci)]);
+    for (let j = Math.max(0, Math.floor(cj - R / kz)); j <= Math.min(GRID.h - 1, Math.ceil(cj + R / kz)); j++)
+      for (let i = Math.max(0, Math.floor(ci - R / kx)); i <= Math.min(GRID.w - 1, Math.ceil(ci + R / kx)); i++) {
+        const k = j * GRID.w + i, d = Math.hypot((i - ci) * kx, (j - cj) * kz);
+        if (heights[k] >= 0.5) heights[k] += (h0 - heights[k]) * (1 - THREE.MathUtils.smoothstep(d, 1.3, 2.6)); // the sea stays sea
+      }
+  }
   sampleH = makeSampler(heights);
   const dist = coastDistance(heights);
-  const terrain = buildTerrain(heights, dist, LOW ? 2 : 1);
+  const terrain = buildTerrain(heights, dist, LOW ? 2 : 1, LOW);
   scene.add(terrain.group);
   sea = buildSea(heights, dist);
   scene.add(sea);
   buildSites();
   buildRivers();
   buildRoads();
-  trees = buildTrees();
+  trees = buildTrees(cover);
   buildShips();
   buildClouds();
   buildMapLabels();
@@ -120,6 +134,14 @@ async function init() {
   $('#begin-sound').focus({ preventScroll: true });
   renderer.setAnimationLoop(frame);
   window.__ready = true;
+  // test hook: look at lon/lat from azimuth (deg, 0 = from the south), elevation (deg) and distance (km)
+  window.__pose = ([lon, lat], az, el, d) => {
+    if (state.tour) stopTour(); if (state.selected >= 0) deselect(); hideCaption(); flight = null; controls.autoRotate = false;
+    const [x, z] = lonLatToXZ(lon, lat), A = THREE.MathUtils.degToRad(az), E = THREE.MathUtils.degToRad(el);
+    controls.target.set(x, groundY(x, z), z);
+    camera.position.set(x + Math.sin(A) * Math.cos(E) * d, groundY(x, z) + Math.sin(E) * d, z + Math.cos(A) * Math.cos(E) * d);
+    controls.update();
+  };
   const fromHash = SITES.findIndex((s) => '#' + s.id === location.hash);
   if (fromHash >= 0) { begin(false, true); select(fromHash, { instant: true }); }
 }
@@ -131,7 +153,7 @@ function buildSites() {
     const root = new THREE.Group();
     root.position.set(x, y, z);
     const model = buildMonument(s.model);
-    model.position.y = BASE_DEPTH;
+    model.position.y = GROUNDED; // sunk to ground level; rises on its stand when selected (see frame)
     root.add(model);
     // beacon
     const beam = new THREE.Mesh(
@@ -160,7 +182,7 @@ function buildSites() {
     el.addEventListener('pointerenter', () => { state.hovered = i; });
     el.addEventListener('pointerleave', () => { if (state.hovered === i) state.hovered = -1; });
     $('#labels').appendChild(el);
-    siteObjs.push({ site: s, root, model, beam, ring, lamp, hit, el, pos: new THREE.Vector3(x, y, z), scale: 1, w: 0 });
+    siteObjs.push({ site: s, root, model, beam, ring, lamp, hit, el, pos: new THREE.Vector3(x, y, z), scale: 1, w: 0, lift: 0 });
   });
 }
 
@@ -169,7 +191,9 @@ function buildRivers() {
   riverMat = new LineMaterial({ color: 0x3f9fc4, linewidth: 3, transparent: true, opacity: 0.95, depthWrite: false });
   for (const pts of Object.values(RIVERS)) {
     const flat = [];
-    const curve = new THREE.CatmullRomCurve3(pts.map(([lon, lat]) => { const [x, z] = lonLatToXZ(lon, lat); return new THREE.Vector3(x, 0, z); }));
+    // the traces step from cell to cell; every third point through a spline gives a natural course
+    const thin = pts.filter((_, k) => k % 3 === 0 || k === pts.length - 1);
+    const curve = new THREE.CatmullRomCurve3(thin.map(([lon, lat]) => { const [x, z] = lonLatToXZ(lon, lat); return new THREE.Vector3(x, 0, z); }));
     for (const p of curve.getSpacedPoints(pts.length * 4)) flat.push(p.x, groundY(p.x, p.z) + 0.05, p.z);
     const line = new Line2(new LineGeometry().setPositions(flat), riverMat);
     line.renderOrder = 1;
@@ -207,9 +231,12 @@ function buildRoads() {
   scene.add(roadGroup);
 }
 
-// Low-poly trees for the map itself, one instanced mesh per species so thousands cost four draw calls.
-// Species follow the real belts: olive, stone pine and cypress on the coastal plain, Turkish pine and
-// kermes oak on the slopes, cedar and fir in the high Taurus.
+// Trees for the map itself, placed from ESA WorldCover 2021 (public/landcover.png: tree, shrub and cropland
+// fractions per terrain cell) and chosen by the real vegetation belts of the Cilician Taurus: Turkish red pine
+// (Pinus brutia) up to ~1,000 m, black pine above it, Taurus cedar and Cilician fir in the high belt
+// (~1,300-2,000 m), juniper scattered towards the treeline; olives and carobs among the lowland fields, maquis
+// on the scrub. Trees are drawn in map chunks, one instanced mesh per species per chunk, and only the chunks
+// near the camera are shown.
 function treeGeometries() {
   const part = (geo, rgb, matrix) => {
     geo = geo.index ? geo.toNonIndexed() : geo; geo.deleteAttribute('uv'); if (matrix) geo.applyMatrix4(matrix);
@@ -222,38 +249,85 @@ function treeGeometries() {
   const LEAF = [1, 1, 1], BARK = [1.7, 0.75, 0.75]; // bark is over-driven so the green instance tint still leaves it brown
   const bole = (h, r) => part(new THREE.CylinderGeometry(r * 0.6, r, h, 4, 1, true), BARK, T(0, h / 2, 0, 1));
   const blob = (x, y, z, r, flat, ry = 0) => part(new THREE.IcosahedronGeometry(1, 0), LEAF, T(x, y, z, r, r * flat, r, ry));
-  const tier = (y, r, h) => part(new THREE.ConeGeometry(r, h, 6, 1, true), LEAF, T(0, y, 0, 1));
+  const cone = (y, r, h, seg = 6) => part(new THREE.ConeGeometry(r, h, seg, 1, true), LEAF, T(0, y, 0, 1));
   return {
-    pine: mergeGeometries([bole(0.12, 0.012), blob(0, 0.155, 0, 0.06, 0.55), blob(0.04, 0.14, 0.02, 0.04, 0.5, 1), blob(-0.035, 0.145, -0.025, 0.04, 0.5, 2)]),
-    olive: mergeGeometries([bole(0.05, 0.016), blob(0, 0.085, 0, 0.05, 0.75), blob(0.035, 0.07, 0.02, 0.035, 0.7, 1.3)]),
-    cypress: mergeGeometries([bole(0.03, 0.008), part(new THREE.LatheGeometry([[0.012, 0.02], [0.03, 0.08], [0.027, 0.17], [0.012, 0.25], [0, 0.28]].map(([r, y]) => new THREE.Vector2(r, y)), 5), LEAF)]),
-    cedar: mergeGeometries([bole(0.1, 0.011), tier(0.085, 0.07, 0.07), tier(0.135, 0.056, 0.07), tier(0.185, 0.04, 0.07), tier(0.235, 0.024, 0.07)]),
+    // red pine: tall clean trunk under an irregular, open, rounded crown
+    brutia: mergeGeometries([bole(0.06, 0.008), blob(0, 0.075, 0, 0.032, 0.8), blob(0.018, 0.062, 0.01, 0.022, 0.75, 1), blob(-0.016, 0.066, -0.012, 0.022, 0.75, 2)]),
+    // black pine: denser, more conical crown
+    nigra: mergeGeometries([bole(0.04, 0.008), cone(0.07, 0.034, 0.08, 6), blob(0, 0.098, 0, 0.018, 1.1)]),
+    // Taurus cedar: flat layered tiers, broad
+    cedar: mergeGeometries([bole(0.035, 0.009), cone(0.045, 0.05, 0.03, 7), cone(0.07, 0.04, 0.03, 7), cone(0.093, 0.028, 0.028, 7), cone(0.112, 0.014, 0.026, 6)]),
+    // Cilician fir: narrow dark spire
+    fir: mergeGeometries([bole(0.02, 0.006), cone(0.06, 0.024, 0.1, 6), cone(0.095, 0.015, 0.06, 6)]),
+    // olive / carob / juniper / maquis: low rounded bush-trees (scaled per instance)
+    olive: mergeGeometries([bole(0.02, 0.008), blob(0, 0.032, 0, 0.026, 0.7), blob(0.016, 0.028, 0.008, 0.017, 0.7, 1.3)]),
   };
 }
-function buildTrees() {
-  const per = LOW ? 260 : 650, geos = treeGeometries(), group = new THREE.Group();
+async function loadLandcover(url) {
+  const img = new Image(); img.src = url; await img.decode();
+  const c = document.createElement('canvas'); c.width = GRID.w; c.height = GRID.h;
+  const ctx = c.getContext('2d', { willReadFrequently: true }); ctx.drawImage(img, 0, 0);
+  return ctx.getImageData(0, 0, GRID.w, GRID.h).data;
+}
+function buildTrees(cover) {
+  const geos = treeGeometries(), group = new THREE.Group(), chunks = [];
   const material = new THREE.MeshStandardMaterial({ roughness: 1, flatShading: true, vertexColors: true });
-  const kinds = {}, m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), p = new THREE.Vector3(), col = new THREE.Color(), up = new THREE.Vector3(0, 1, 0);
-  for (const k in geos) { const mesh = new THREE.InstancedMesh(geos[k], material, per * SITES.length); mesh.count = 0; mesh.castShadow = true; kinds[k] = mesh; group.add(mesh); }
-  const tint = { pine: [0.29, 0.45, 0.2], olive: [0.23, 0.22, 0.29], cypress: [0.34, 0.42, 0.13], cedar: [0.36, 0.38, 0.15] }; // hue, saturation, lightness
+  // hue, saturation, lightness per species (instance tint over the vertex tones)
+  const tint = { brutia: [0.27, 0.4, 0.22], nigra: [0.3, 0.38, 0.17], cedar: [0.36, 0.3, 0.2], fir: [0.38, 0.4, 0.14], olive: [0.2, 0.2, 0.33], carob: [0.27, 0.45, 0.2], juniper: [0.33, 0.25, 0.22], maquis: [0.25, 0.35, 0.24] };
+  const geoOf = { brutia: 'brutia', nigra: 'nigra', cedar: 'cedar', fir: 'fir', olive: 'olive', carob: 'olive', juniper: 'olive', maquis: 'olive' };
+  const CH = 32, cx = Math.ceil(GRID.w / CH), cz = Math.ceil(GRID.h / CH); // chunks of 32 x 32 cells (~8 km)
+  const dens = LOW ? 0.45 : 1; // trees per fully forested cell (~260 m)
   let seed = 7;
   const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
-  siteObjs.forEach((o, si) => {
-    for (let k = 0, n = 0; k < per * 3 && n < per; k++) {
-      const a = rnd() * 6.283, r = 1.7 + Math.pow(rnd(), 1.4) * 13; // dense near the site, thinning out
-      const x = o.pos.x + Math.cos(a) * r, z = o.pos.z + Math.sin(a) * r;
-      const h = sampleH(x, z);
-      if (h < 6 || h > 1900 || rnd() > 0.35 + 0.65 * Math.min(1, h / 500) || siteObjs.some((s) => Math.hypot(s.pos.x - x, s.pos.z - z) < 1.6)) continue;
-      const u = rnd(), kind = h < 250 ? (u < 0.45 ? 'olive' : u < 0.82 ? 'pine' : 'cypress') : h < 1100 ? (u < 0.62 ? 'pine' : u < 0.92 ? 'olive' : 'cedar') : (u < 0.82 ? 'cedar' : 'pine');
-      const mesh = kinds[kind], s = (0.7 + rnd() * 0.8) * (kind === 'olive' && h >= 250 ? 0.85 : 1), t = tint[kind];
-      p.set(x, metresToY(h) - 0.01, z); sc.set(s * (0.85 + rnd() * 0.3), s, s * (0.85 + rnd() * 0.3));
-      mesh.setMatrixAt(mesh.count, m4.compose(p, q.setFromAxisAngle(up, rnd() * 6.283), sc));
-      mesh.setColorAt(mesh.count, col.setHSL(t[0] + (rnd() - 0.5) * 0.05, t[1] + (rnd() - 0.5) * 0.12, (kind === 'olive' && h >= 250 ? 0.19 : t[2]) + (rnd() - 0.5) * 0.07)); // upland "olive" shapes stand in for dark kermes oak
-      mesh.count++; n++;
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), p = new THREE.Vector3(), col = new THREE.Color(), up = new THREE.Vector3(0, 1, 0);
+  const cellW = WORLD.w / (GRID.w - 1), cellD = WORLD.d / (GRID.h - 1);
+  for (let bz = 0; bz < cz; bz++) for (let bx = 0; bx < cx; bx++) {
+    const list = {};
+    const add = (kind, x, z, y, s) => (list[kind] ||= []).push(x, y, z, s);
+    for (let j = bz * CH; j < Math.min(GRID.h, (bz + 1) * CH); j++) for (let i = bx * CH; i < Math.min(GRID.w, (bx + 1) * CH); i++) {
+      const k = (j * GRID.w + i) * 4, tree = cover[k] / 255, shrub = cover[k + 1] / 255, crop = cover[k + 2] / 255;
+      let n = tree * 2.2 * dens + shrub * 0.5 * dens + crop * 0.2 * dens;
+      for (; n > 0; n--) {
+        if (n < 1 && rnd() > n) break;
+        const x = (i + rnd() - 0.5) * cellW - WORLD.w / 2, z = (j + rnd() - 0.5) * cellD - WORLD.d / 2, h = sampleH(x, z);
+        if (h < 2 || siteObjs.some((o) => Math.abs(o.pos.x - x) < 1.6 && Math.abs(o.pos.z - z) < 1.6)) continue;
+        const u = rnd(), r = rnd() * (tree + shrub + crop);
+        let kind;
+        if (r < tree) { // forest, by altitude belt (with some overlap)
+          const e = h + (rnd() - 0.5) * 300;
+          kind = e < 1000 ? (u < 0.9 ? 'brutia' : 'carob') : e < 1350 ? (u < 0.6 ? 'nigra' : 'brutia') : e < 2000 ? (u < 0.45 ? 'cedar' : u < 0.75 ? 'fir' : u < 0.9 ? 'nigra' : 'juniper') : 'juniper';
+        } else if (r < tree + shrub) kind = h < 900 ? 'maquis' : 'juniper';
+        else kind = h < 500 ? (u < 0.7 ? 'olive' : 'carob') : 'olive';
+        const s = (kind === 'maquis' ? 0.45 : kind === 'juniper' ? 0.7 : 1) * (0.75 + rnd() * 0.5);
+        add(kind, x, z, metresToY(h) - 0.004, s);
+      }
     }
-  });
+    const meshes = [];
+    for (const kind in list) {
+      const a = list[kind], cnt = a.length / 4, t = tint[kind];
+      const mesh = new THREE.InstancedMesh(geos[geoOf[kind]], material, cnt);
+      for (let k = 0; k < cnt; k++) {
+        const s = a[k * 4 + 3];
+        p.set(a[k * 4], a[k * 4 + 1], a[k * 4 + 2]); sc.set(s * (0.85 + rnd() * 0.3), s * (0.9 + rnd() * 0.25), s * (0.85 + rnd() * 0.3));
+        mesh.setMatrixAt(k, m4.compose(p, q.setFromAxisAngle(up, rnd() * 6.283), sc));
+        mesh.setColorAt(k, col.setHSL(t[0] + (rnd() - 0.5) * 0.04, t[1] + (rnd() - 0.5) * 0.1, t[2] + (rnd() - 0.5) * 0.05));
+      }
+      mesh.castShadow = !LOW; mesh.receiveShadow = false;
+      mesh.computeBoundingSphere();
+      meshes.push(mesh); group.add(mesh);
+    }
+    if (meshes.length) chunks.push({ meshes, x: ((bx + 0.5) * CH) * cellW - WORLD.w / 2, z: ((bz + 0.5) * CH) * cellD - WORLD.d / 2 });
+  }
   scene.add(group);
+  group.userData.chunks = chunks;
   return group;
+}
+// show only the tree chunks around the point the camera looks at (and none from far out)
+function updateTrees(dist) {
+  if (!trees) return;
+  // beyond ~40 km a tree is smaller than a pixel and the forest colour of the ground carries the canopy
+  const r = Math.min(26, 12 + dist * 0.35) * (degraded ? 0.6 : 1), tx = controls.target.x, tz = controls.target.z, on = dist < 40;
+  for (const c of trees.userData.chunks) { const v = on && Math.hypot(c.x - tx, c.z - tz) < r + 6; for (const m of c.meshes) m.visible = v; }
 }
 
 function buildShips() {
@@ -692,6 +766,8 @@ function frame() {
     const target = Math.max(active ? 1.15 : 0, THREE.MathUtils.clamp(d / 40, 0.8, 2.3)) * (hov && !active ? 1.12 : 1);
     o.scale += (target - o.scale) * Math.min(1, dt * 8);
     o.root.scale.setScalar(o.scale);
+    o.lift += ((active ? 1 : 0) - o.lift) * Math.min(1, dt * 3.5);
+    o.model.position.y = GROUNDED + (BASE_DEPTH - GROUNDED) * o.lift * o.lift * (3 - 2 * o.lift);
     o.beam.material.opacity = (0.35 + 0.2 * Math.sin(t * 2 + i)) * THREE.MathUtils.smoothstep(d, 6, 45);
     o.beam.visible = !active;
     o.ring.scale.setScalar(1 + 0.08 * Math.sin(t * 2.5 + i) + (hov ? 0.12 : 0));
@@ -700,7 +776,7 @@ function frame() {
   }
   for (const i of order) {
     const o = siteObjs[i];
-    v.copy(o.pos); v.y += (i === state.selected ? 1.75 : 2.3) * o.scale;
+    v.copy(o.pos); v.y += (i === state.selected ? 2.2 : 1.85) * o.scale;
     v.project(camera);
     const behind = v.z > 1;
     const x = (v.x * 0.5 + 0.5) * W, y = (-v.y * 0.5 + 0.5) * H;
@@ -729,7 +805,7 @@ function frame() {
   }
   for (const c of clouds) { c.position.x += dt * 0.9; if (c.position.x > WORLD.w / 2 + 30) c.position.x = -WORLD.w / 2 - 30; c.visible = camera.position.y > 14; }
   const lf = THREE.MathUtils.smoothstep(dist, 22, 70);
-  if (trees) trees.visible = dist < 70;
+  updateTrees(dist);
   for (const m of mapLabels) { m.material.opacity = m.userData.op * lf; m.visible = lf > 0.01; }
 
   // compass + ambience mix
