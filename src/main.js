@@ -273,7 +273,8 @@ function buildTrees(cover) {
   const geos = treeGeometries(), group = new THREE.Group(), chunks = [];
   const material = new THREE.MeshStandardMaterial({ roughness: 1, flatShading: true, vertexColors: true });
   // hue, saturation, lightness per species (instance tint over the vertex tones)
-  const tint = { brutia: [0.27, 0.4, 0.22], nigra: [0.3, 0.38, 0.17], cedar: [0.36, 0.3, 0.2], fir: [0.38, 0.4, 0.14], olive: [0.2, 0.2, 0.33], carob: [0.27, 0.45, 0.2], juniper: [0.33, 0.25, 0.22], maquis: [0.25, 0.35, 0.24] };
+  // crowns are kept a little darker than the forest floor colour so woods read as mass, not sparkle
+  const tint = { brutia: [0.27, 0.42, 0.15], nigra: [0.3, 0.4, 0.12], cedar: [0.38, 0.32, 0.13], fir: [0.4, 0.4, 0.1], olive: [0.21, 0.2, 0.25], carob: [0.28, 0.45, 0.15], juniper: [0.33, 0.25, 0.16], maquis: [0.25, 0.35, 0.17] };
   const geoOf = { brutia: 'brutia', nigra: 'nigra', cedar: 'cedar', fir: 'fir', olive: 'olive', carob: 'olive', juniper: 'olive', maquis: 'olive' };
   const CH = 32, cx = Math.ceil(GRID.w / CH), cz = Math.ceil(GRID.h / CH); // chunks of 32 x 32 cells (~8 km)
   const dens = LOW ? 0.45 : 1; // trees per fully forested cell (~260 m)
@@ -286,7 +287,7 @@ function buildTrees(cover) {
     const add = (kind, x, z, y, s) => (list[kind] ||= []).push(x, y, z, s);
     for (let j = bz * CH; j < Math.min(GRID.h, (bz + 1) * CH); j++) for (let i = bx * CH; i < Math.min(GRID.w, (bx + 1) * CH); i++) {
       const k = (j * GRID.w + i) * 4, tree = cover[k] / 255, shrub = cover[k + 1] / 255, crop = cover[k + 2] / 255;
-      let n = tree * 2.2 * dens + shrub * 0.5 * dens + crop * 0.2 * dens;
+      let n = tree * 3 * dens + shrub * 0.4 * dens + crop * 0.15 * dens;
       for (; n > 0; n--) {
         if (n < 1 && rnd() > n) break;
         const x = (i + rnd() - 0.5) * cellW - WORLD.w / 2, z = (j + rnd() - 0.5) * cellD - WORLD.d / 2, h = sampleH(x, z);
@@ -295,10 +296,11 @@ function buildTrees(cover) {
         let kind;
         if (r < tree) { // forest, by altitude belt (with some overlap)
           const e = h + (rnd() - 0.5) * 300;
-          kind = e < 1000 ? (u < 0.9 ? 'brutia' : 'carob') : e < 1350 ? (u < 0.6 ? 'nigra' : 'brutia') : e < 2000 ? (u < 0.45 ? 'cedar' : u < 0.75 ? 'fir' : u < 0.9 ? 'nigra' : 'juniper') : 'juniper';
+          kind = h < 110 ? (u < 0.6 ? 'olive' : 'carob') // tree cover on the plains is orchard, not forest
+            : e < 1000 ? (u < 0.9 ? 'brutia' : 'carob') : e < 1350 ? (u < 0.6 ? 'nigra' : 'brutia') : e < 2000 ? (u < 0.45 ? 'cedar' : u < 0.75 ? 'fir' : u < 0.9 ? 'nigra' : 'juniper') : 'juniper';
         } else if (r < tree + shrub) kind = h < 900 ? 'maquis' : 'juniper';
         else kind = h < 500 ? (u < 0.7 ? 'olive' : 'carob') : 'olive';
-        const s = (kind === 'maquis' ? 0.45 : kind === 'juniper' ? 0.7 : 1) * (0.75 + rnd() * 0.5);
+        const s = (kind === 'maquis' ? 0.5 : kind === 'juniper' ? 0.8 : 1.25) * (0.75 + rnd() * 0.5);
         add(kind, x, z, metresToY(h) - 0.004, s);
       }
     }

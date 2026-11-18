@@ -15,7 +15,7 @@ npm run build    # static site in dist/
 - Add `?q=low` to the URL for a lighter render (slow devices automatically drop shadows and retina resolution).
 
 ## How it is built
-- `public/heightmap.png`, `terrain-normal.jpg`, `terrain-color.jpg`, `landcover.png` — terrain built from open data by `tools/build_terrain_data.py` (`pip install rasterio numpy pillow`): elevation from the Copernicus 30 m DEM, ground colour and tree placement from ESA WorldCover 2021 land cover. See SOURCES.md.
+- `public/heightmap.png`, `terrain-normal.jpg`, `terrain-color.jpg`, `landcover.png` — terrain built from open data by `tools/build_terrain_data.py` (`pip install rasterio numpy pillow`): elevation from the Copernicus 30 m DEM, ground colour from Sentinel-2 cloudless imagery, land/water and tree placement from ESA WorldCover 2021. See SOURCES.md.
 - `src/terrain.js` — terrain mesh, hypsometric colouring, animated sea.
 - `src/monuments/` — one procedural diorama per site (`<site>.js`), built from its standing remains with the shared modelling kit in `kit.js` (textured masonry, columns, theatres, vaults, rock faces, sculpted terrain bases).
 - `preview.html` — dev-only page that renders one diorama on its own: `npm run dev`, then `/preview.html?m=soli&a=20&e=30&d=3` (`tools/model_shots.mjs` captures a set of views).

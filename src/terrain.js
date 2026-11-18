@@ -72,7 +72,7 @@ export function buildTerrain(heights0, dist, step = 1, low = false) {
   const normalMap = loader.load(`${root}terrain-normal${sfx}.jpg`);
   normalMap.anisotropy = 8;
   const mat = new THREE.MeshStandardMaterial({ map, normalMap, normalMapType: THREE.ObjectSpaceNormalMap, roughness: 0.96, metalness: 0 });
-  // close-range grain: the textures are ~90 m per texel, so add fine variation when zoomed in
+  // close-range grain: the textures are ~65 m per texel, so add fine variation when zoomed in
   mat.onBeforeCompile = (sh) => {
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vWp;')
@@ -96,6 +96,17 @@ export function buildTerrain(heights0, dist, step = 1, low = false) {
         float stone = smoothstep(0.62, 0.8, vn(vWp.xz*53.0 + 11.0));
         diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb*1.16 + 0.03, stone*(1.0 - canopy)*near*0.6);`);
   };
+  // earth-coloured wall round the edge of the map, from the surface down to the plinth
+  const edge = [];
+  for (let i = 0; i < w; i++) edge.push(i);
+  for (let j = 1; j < h; j++) edge.push(j * w + w - 1);
+  for (let i = w - 2; i >= 0; i--) edge.push((h - 1) * w + i);
+  for (let j = h - 2; j > 0; j--) edge.push(j * w);
+  const sp = [], si = [];
+  edge.forEach((k, n) => { sp.push(pos.getX(k), pos.getY(k), pos.getZ(k), pos.getX(k), -1.5, pos.getZ(k)); const a = n * 2, b = ((n + 1) % edge.length) * 2; si.push(a, b, a + 1, b, b + 1, a + 1); });
+  const skirtGeo = new THREE.BufferGeometry();
+  skirtGeo.setAttribute('position', new THREE.Float32BufferAttribute(sp, 3)); skirtGeo.setIndex(si); skirtGeo.computeVertexNormals();
+  const skirt = new THREE.Mesh(skirtGeo, new THREE.MeshStandardMaterial({ color: 0x6b5a45, roughness: 1, side: THREE.DoubleSide }));
   const land = new THREE.Mesh(geo, mat);
   land.receiveShadow = true;
 
@@ -106,16 +117,21 @@ export function buildTerrain(heights0, dist, step = 1, low = false) {
   );
   base.position.y = -3.9;
   const g = new THREE.Group();
-  g.add(land, base);
+  g.add(land, skirt, base);
   return { group: g, land };
 }
 
 export function buildSea(heights, dist) {
   const { w, h } = GRID;
   const data = new Uint8Array(w * h * 4);
+  // mean land height within ~4 km of each cell (two box passes): high beside mountains, near zero off plains
+  const R = 16, relief = new Float32Array(w * h), tmp = new Float32Array(w * h);
+  for (let j = 0; j < h; j++) { let s = 0; for (let i = -R; i < w; i++) { if (i + R < w) s += Math.max(0, heights[j * w + i + R]); if (i - R - 1 >= 0) s -= Math.max(0, heights[j * w + i - R - 1]); if (i >= 0) tmp[j * w + i] = s / (2 * R + 1); } }
+  for (let i = 0; i < w; i++) { let s = 0; for (let j = -R; j < h; j++) { if (j + R < h) s += tmp[(j + R) * w + i]; if (j - R - 1 >= 0) s -= tmp[(j - R - 1) * w + i]; if (j >= 0) relief[j * w + i] = s / (2 * R + 1); } }
   for (let i = 0; i < w * h; i++) {
     const m = heights[i];
-    data[i * 4] = m < 0.5 ? Math.min(255, (dist[i] / 14) * 255) : 0; // depth proxy: distance offshore
+    // depth proxy: distance offshore, over a shelf that is narrow below steep coasts and wide off the deltas
+    data[i * 4] = m < 0.5 ? Math.min(255, (dist[i] / (3.5 + 13 * Math.exp(-relief[i] / 70))) * 255) : 0;
     data[i * 4 + 1] = m >= 0.5 ? 255 : 0; // land mask
     data[i * 4 + 3] = 255;
   }
@@ -148,7 +164,7 @@ export function buildSea(heights, dist) {
         // sun glitter
         vec3 v = normalize(cameraPosition - vWorld);
         float gl = pow(max(0.0, wave(vWorld.xz*6.0+3.0)*wave(vWorld.zx*3.7-1.0)*0.5+0.5), 9.0) * (0.3+0.7*pow(1.0-v.y,2.0));
-        c += uSun * gl * 0.28 * (1.0 - smoothstep(8.0, 45.0, d)); // fades out before it can alias
+        c += uSun * gl * 0.12 * (1.0 - smoothstep(6.0, 30.0, d)); // fades out before it can alias
         // surf line breathing against the shore
         float shore = smoothstep(0.15, 0.6, land);
         float foam = smoothstep(0.55, 0.9, shore + 0.18*sin(uTime*1.4 + vWorld.x*1.3 + vWorld.z*1.7)) * (1.0-smoothstep(0.9,1.0,land));
