@@ -220,14 +220,26 @@ def main():
         done = modern & (wsum > 0.02) if R == 24 else modern
     grain = (noise(TEX_H, TEX_W, 4, 21) - 0.5) * 0.22 + (noise(TEX_H, TEX_W, 14, 22) - 0.5) * 0.16
     col[modern] *= (1 + grain[modern])[:, None]
+    # the plains: today's ruler-straight parcels (and an airfield) soften into a mottled patchwork of fields
+    plain = land & (lc == 40) & (ht < 250) & ~modern
+    soft = np.stack([box(box(col[..., k], 5), 5) for k in range(3)], -1)
+    mosaic = (noise(TEX_H, TEX_W, 7, 31) - 0.5) * 0.2 + (noise(TEX_H, TEX_W, 22, 32) - 0.5) * 0.14
+    col[plain] = soft[plain] * (1 + mosaic[plain])[:, None]
     # grade: lift the mosaic's dark tones a little and warm it towards a summer afternoon
     col = np.clip(col, 0, 1) ** 0.9
     g = col.mean(-1, keepdims=True); col = np.clip(g + (col - g) * 0.82, 0, 1)  # the summer mosaic is very orange
     col *= np.array([0.97, 1.0, 0.98], np.float32)
+    # the mosaic carries its own terrain shadows and the scene lights it again: open up the darkest tones
+    lum2 = col.mean(-1, keepdims=True); col += np.clip(0.3 - lum2, 0, 1) * 0.45
+    # the high Taurus is pale grey limestone and scree, not the ochre of a low-sun mosaic
+    alp = np.clip((box(ht, 2) - 2200) / 500, 0, 1)[..., None] * 0.6
+    grey = col.mean(-1, keepdims=True) * np.array([0.98, 0.99, 1.02], np.float32) * 1.12
+    col = col * (1 - alp) + np.clip(grey, 0, 1) * alp
     slope = np.hypot(dx, dz) / VEX
     def C(hexv): return np.array([(hexv >> 16) & 255, (hexv >> 8) & 255, hexv & 255], np.float32) / 255
     # permanent snow patches on the highest, gentlest ground of the Bolkar range
-    snow = np.clip((box(ht, 2) - 2950) / 350, 0, 1) * np.clip(1.2 - slope * 1.6, 0, 1) * (noise(TEX_H, TEX_W, 6, 9) > 0.45)
+    north = np.clip(0.5 + dz / np.maximum(np.hypot(dx, dz), 1e-4) * -0.5, 0, 1)  # 1 on north-facing slopes
+    snow = np.clip((box(ht, 2) - 2750) / 400, 0, 1) * np.clip(1.3 - slope * 1.2, 0, 1) * (0.35 + 0.65 * north) * (noise(TEX_H, TEX_W, 6, 9) > 0.42)
     col = col * (1 - snow[..., None] * 0.8) + C(0xf4f4f0) * snow[..., None] * 0.8
     shore = land & (ht < 3) & (box(sea.astype(np.float32), 2) > 0.05)
     col[shore] = col[shore] * 0.45 + C(0xd9cba0) * 0.55

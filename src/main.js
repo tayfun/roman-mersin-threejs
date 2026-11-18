@@ -112,7 +112,7 @@ async function init() {
   }
   sampleH = makeSampler(heights);
   const dist = coastDistance(heights);
-  const terrain = buildTerrain(heights, dist, LOW ? 2 : 1, LOW);
+  const terrain = buildTerrain(heights, dist, LOW ? 2 : 1, LOW, cover);
   scene.add(terrain.group);
   sea = buildSea(heights, dist);
   scene.add(sea);
@@ -194,7 +194,7 @@ function buildRivers() {
     // the traces step from cell to cell; every third point through a spline gives a natural course
     const thin = pts.filter((_, k) => k % 3 === 0 || k === pts.length - 1);
     const curve = new THREE.CatmullRomCurve3(thin.map(([lon, lat]) => { const [x, z] = lonLatToXZ(lon, lat); return new THREE.Vector3(x, 0, z); }));
-    for (const p of curve.getSpacedPoints(pts.length * 4)) flat.push(p.x, groundY(p.x, p.z) + 0.05, p.z);
+    for (const p of curve.getSpacedPoints(pts.length * 10)) flat.push(p.x, groundY(p.x, p.z) + 0.08, p.z);
     const line = new Line2(new LineGeometry().setPositions(flat), riverMat);
     line.renderOrder = 1;
     scene.add(line);
@@ -272,9 +272,15 @@ async function loadLandcover(url) {
 function buildTrees(cover) {
   const geos = treeGeometries(), group = new THREE.Group(), chunks = [];
   const material = new THREE.MeshStandardMaterial({ roughness: 1, flatShading: true, vertexColors: true });
+  // trees shrink to nothing towards the edge of the drawn radius instead of stopping on a line
+  material.onBeforeCompile = (sh) => {
+    sh.uniforms.uTreeC = treeFade.c; sh.uniforms.uTreeR = treeFade.r;
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nuniform vec3 uTreeC; uniform float uTreeR;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\n#ifdef USE_INSTANCING\n transformed *= 1.0 - smoothstep(uTreeR * 0.6, uTreeR, distance(instanceMatrix[3].xz, uTreeC.xz));\n#endif');
+  };
   // hue, saturation, lightness per species (instance tint over the vertex tones)
   // crowns are kept a little darker than the forest floor colour so woods read as mass, not sparkle
-  const tint = { brutia: [0.27, 0.42, 0.15], nigra: [0.3, 0.4, 0.12], cedar: [0.38, 0.32, 0.13], fir: [0.4, 0.4, 0.1], olive: [0.21, 0.2, 0.25], carob: [0.28, 0.45, 0.15], juniper: [0.33, 0.25, 0.16], maquis: [0.25, 0.35, 0.17] };
+  const tint = { brutia: [0.27, 0.42, 0.15], nigra: [0.3, 0.4, 0.12], cedar: [0.38, 0.32, 0.13], fir: [0.4, 0.4, 0.1], olive: [0.21, 0.2, 0.19], carob: [0.28, 0.45, 0.15], juniper: [0.33, 0.25, 0.16], maquis: [0.25, 0.35, 0.17] };
   const geoOf = { brutia: 'brutia', nigra: 'nigra', cedar: 'cedar', fir: 'fir', olive: 'olive', carob: 'olive', juniper: 'olive', maquis: 'olive' };
   const CH = 32, cx = Math.ceil(GRID.w / CH), cz = Math.ceil(GRID.h / CH); // chunks of 32 x 32 cells (~8 km)
   const dens = LOW ? 0.45 : 1; // trees per fully forested cell (~260 m)
@@ -300,7 +306,7 @@ function buildTrees(cover) {
             : e < 1000 ? (u < 0.9 ? 'brutia' : 'carob') : e < 1350 ? (u < 0.6 ? 'nigra' : 'brutia') : e < 2000 ? (u < 0.45 ? 'cedar' : u < 0.75 ? 'fir' : u < 0.9 ? 'nigra' : 'juniper') : 'juniper';
         } else if (r < tree + shrub) kind = h < 900 ? 'maquis' : 'juniper';
         else kind = h < 500 ? (u < 0.7 ? 'olive' : 'carob') : 'olive';
-        const s = (kind === 'maquis' ? 0.5 : kind === 'juniper' ? 0.8 : 1.25) * (0.75 + rnd() * 0.5);
+        const s = (kind === 'maquis' ? 0.5 : kind === 'juniper' ? 0.8 : 1.25) * (0.6 + rnd() * 0.8);
         add(kind, x, z, metresToY(h) - 0.004, s);
       }
     }
@@ -324,11 +330,13 @@ function buildTrees(cover) {
   group.userData.chunks = chunks;
   return group;
 }
+const treeFade = { c: { value: new THREE.Vector3() }, r: { value: 20 } };
 // show only the tree chunks around the point the camera looks at (and none from far out)
 function updateTrees(dist) {
   if (!trees) return;
   // beyond ~40 km a tree is smaller than a pixel and the forest colour of the ground carries the canopy
   const r = Math.min(26, 12 + dist * 0.35) * (degraded ? 0.6 : 1), tx = controls.target.x, tz = controls.target.z, on = dist < 40;
+  treeFade.c.value.copy(controls.target); treeFade.r.value = r;
   for (const c of trees.userData.chunks) { const v = on && Math.hypot(c.x - tx, c.z - tz) < r + 6; for (const m of c.meshes) m.visible = v; }
 }
 
@@ -410,7 +418,7 @@ const L = {
   sun: [new THREE.Color(0xfff2dc), new THREE.Color(0xffb46e)],
   hemiSky: [new THREE.Color(0xdcecff), new THREE.Color(0xb9c2e6)],
   hemiGround: [new THREE.Color(0x8a7a5a), new THREE.Color(0x8a6a4a)],
-  shallow: [new THREE.Color(0x5fd0c8), new THREE.Color(0x6fc2b4)],
+  shallow: [new THREE.Color(0x63b3b0), new THREE.Color(0x6fb0a6)],
   deep: [new THREE.Color(0x0d4470), new THREE.Color(0x14406e)],
 };
 const sunDir = new THREE.Vector3();
