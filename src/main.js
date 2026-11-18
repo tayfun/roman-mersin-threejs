@@ -819,7 +819,7 @@ function frame() {
     s.obj.rotation.z = Math.sin(t * 1.1 + s.phase) * 0.04;
     s.obj.scale.setScalar(THREE.MathUtils.clamp(camera.position.distanceTo(s.obj.position) / 50, 1.2, 3.2));
   }
-  for (const c of clouds) { c.position.x += dt * 0.9; if (c.position.x > WORLD.w / 2 + 30) c.position.x = -WORLD.w / 2 - 30; c.visible = camera.position.y > 14 && dist < 150; // from far out a cloud reads as a hole in the map }
+  for (const c of clouds) { c.position.x += dt * 0.9; if (c.position.x > WORLD.w / 2 + 30) c.position.x = -WORLD.w / 2 - 30; c.visible = camera.position.y > 14 && dist < 150; /* from far out a cloud reads as a hole in the map */ }
   const lf = THREE.MathUtils.smoothstep(dist, 22, 70);
   updateTrees(dist);
   for (const m of mapLabels) { m.material.opacity = m.userData.op * lf; m.visible = lf > 0.01; }
