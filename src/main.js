@@ -298,7 +298,7 @@ function buildTrees(cover) {
       const k = (j * GRID.w + i) * 4, tree = cover[k] / 255, shrub = cover[k + 1] / 255, crop = cover[k + 2] / 255;
       // clumped: stands and clearings rather than an even sprinkle
       const clump = 0.35 + 1.3 * (0.5 + 0.5 * Math.sin(i * 0.37 + Math.sin(j * 0.23) * 2.1) * Math.cos(j * 0.31 + Math.sin(i * 0.19) * 1.7));
-      let n = (tree * tree * 5 + shrub * 0.7 + crop * 0.15) * dens * clump;
+      let n = (tree * (0.6 + 3.2 * tree) * 1.5 + shrub * 0.9 + crop * 0.15) * dens * clump;
       for (; n > 0; n--) {
         if (n < 1 && rnd() > n) break;
         const x = (i + rnd() - 0.5) * cellW - WORLD.w / 2, z = (j + rnd() - 0.5) * cellD - WORLD.d / 2, h = sampleH(x, z);
@@ -308,10 +308,11 @@ function buildTrees(cover) {
         if (r < tree) { // forest, by altitude belt (with some overlap)
           const e = h + (rnd() - 0.5) * 300;
           kind = h < 110 ? (u < 0.6 ? 'olive' : 'carob') // tree cover on the plains is orchard, not forest
+            : e < 350 ? (u < 0.45 ? 'brutia' : u < 0.85 ? 'maquis' : 'carob') // coastal slopes: pine over dense maquis
             : e < 1000 ? (u < 0.9 ? 'brutia' : 'carob') : e < 1350 ? (u < 0.6 ? 'nigra' : 'brutia') : e < 2000 ? (u < 0.45 ? 'cedar' : u < 0.75 ? 'fir' : u < 0.9 ? 'nigra' : 'juniper') : 'juniper';
         } else if (r < tree + shrub) kind = h < 900 ? 'maquis' : 'juniper';
         else kind = h < 500 ? (u < 0.7 ? 'olive' : 'carob') : 'olive';
-        const s = (kind === 'maquis' ? 0.5 : kind === 'juniper' ? 0.8 : 1.25) * (0.5 + rnd() * rnd() * 1.4);
+        const s = (kind === 'maquis' ? 0.75 : kind === 'juniper' ? 0.8 : 1.25) * (0.5 + rnd() * rnd() * 1.4);
         add(kind, x, z, metresToY(h) - 0.004, s);
       }
     }
@@ -340,7 +341,7 @@ const treeFade = { c: { value: new THREE.Vector3() }, r: { value: 20 } };
 function updateTrees(dist) {
   if (!trees) return;
   // beyond ~40 km a tree is smaller than a pixel and the forest colour of the ground carries the canopy
-  const r = Math.min(26, 12 + dist * 0.35) * (degraded ? 0.6 : 1), tx = controls.target.x, tz = controls.target.z, on = dist < 40;
+  const r = Math.min(28, 10 + dist * 0.4) * (degraded ? 0.6 : 1), tx = controls.target.x, tz = controls.target.z, on = dist < 58;
   treeFade.c.value.copy(controls.target); treeFade.r.value = r;
   for (const c of trees.userData.chunks) { const v = on && Math.hypot(c.x - tx, c.z - tz) < r + 6; for (const m of c.meshes) m.visible = v; }
 }
@@ -818,7 +819,7 @@ function frame() {
     s.obj.rotation.z = Math.sin(t * 1.1 + s.phase) * 0.04;
     s.obj.scale.setScalar(THREE.MathUtils.clamp(camera.position.distanceTo(s.obj.position) / 50, 1.2, 3.2));
   }
-  for (const c of clouds) { c.position.x += dt * 0.9; if (c.position.x > WORLD.w / 2 + 30) c.position.x = -WORLD.w / 2 - 30; c.visible = camera.position.y > 14; }
+  for (const c of clouds) { c.position.x += dt * 0.9; if (c.position.x > WORLD.w / 2 + 30) c.position.x = -WORLD.w / 2 - 30; c.visible = camera.position.y > 14 && dist < 150; // from far out a cloud reads as a hole in the map }
   const lf = THREE.MathUtils.smoothstep(dist, 22, 70);
   updateTrees(dist);
   for (const m of mapLabels) { m.material.opacity = m.userData.op * lf; m.visible = lf > 0.01; }

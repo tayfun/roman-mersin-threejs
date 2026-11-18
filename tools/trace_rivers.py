@@ -33,7 +33,8 @@ def leg(src, goal=None):
     dist = {src: 0.0}; prev = {}; pq = [(0.0, *src)]
     while pq:
         d, j, i = heapq.heappop(pq)
-        if (goal is None and H[j, i] < 0.5) or (j, i) == goal:
+        # the mouth is open water (a 5 x 5 block of it), not the first lagoon cell on the plain
+        if (goal is None and 2 <= j < gh - 2 and 2 <= i < gw - 2 and H[j - 2:j + 3, i - 2:i + 3].max() < 0.5) or (j, i) == goal:
             path = [(j, i)]
             while path[-1] in prev: path.append(prev[path[-1]])
             return path[::-1]
@@ -55,8 +56,8 @@ def trace(points):
     return [lonlat(*p) for p in path]
 
 RIVERS = {
-    "Calycadnus (Göksu)": [(33.20, 36.62), (33.935, 36.372)],  # upstream of Mut, then Silifke bridge
-    "Cydnus (Berdan)": [(34.85, 37.16), (34.905, 36.917)],     # above Tarsus, then through Tarsus
+    "Calycadnus (Göksu)": [(32.95, 36.58), (33.20, 36.62), (33.935, 36.372)],  # Ermenek gorge, upstream of Mut, then Silifke bridge
+    "Cydnus (Berdan)": [(34.80, 37.30), (34.85, 37.16), (34.905, 36.917)],     # above Tarsus, then through Tarsus
     "Lamos (Limonlu)": [(34.10, 36.72)],                       # Lamos canyon
 }
 out = {}

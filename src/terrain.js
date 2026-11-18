@@ -94,18 +94,20 @@ export function buildTerrain(heights0, dist, step = 1, low = false, cover = null
         vec3 cov = texture2D(uCover, vMapUv).rgb; // tree, shrub, crop fractions
         // forest: crowns as dark clumps, coarser with distance so woods keep a texture beyond the 3D trees
         float crowns = vn(vWp.xz*9.0)*0.4 + vn(vWp.xz*27.0)*0.35 + vn(vWp.xz*71.0)*0.25;
-        float wood = smoothstep(0.15, 0.6, cov.r) * smoothstep(0.3, 0.62, crowns + cov.r*0.3);
-        diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb*vec3(0.42, 0.56, 0.44), wood*(0.3 + 0.4*mid));
+        float stand = smoothstep(0.2, 0.55, cov.r + (vn(vWp.xz*3.1) - 0.5)*0.35); // crisp, irregular stand edges
+        diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb*vec3(0.6, 0.72, 0.58), stand*mid*0.75); // understorey shade
+        float grain = smoothstep(0.35, 0.65, crowns);
+        diffuseColor.rgb *= mix(1.0, 0.62 + 0.62*grain, stand*mid); // crowns and the gaps between them
         // open ground close up: pale limestone outcrops and stones, darker maquis tufts
         float n = vn(vWp.xz*6.0)*0.5 + vn(vWp.xz*23.0)*0.3 + vn(vWp.xz*71.0)*0.2;
         diffuseColor.rgb *= mix(1.0, 0.84 + 0.32*n, 1.0 - smoothstep(6.0, 60.0, dd));
-        float open = 1.0 - cov.r;
-        float stone = smoothstep(0.6, 0.78, vn(vWp.xz*41.0 + 11.0)*0.6 + vn(vWp.xz*120.0)*0.4);
+        float open = 1.0 - stand;
+        float stone = smoothstep(0.52, 0.64, vn(vWp.xz*41.0 + 11.0)*0.6 + vn(vWp.xz*120.0)*0.4);
         diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb*1.3 + 0.05, stone*open*near*0.85);
         float soil = vn(vWp.xz*15.0 + 5.0)*0.6 + vn(vWp.xz*180.0)*0.4;
         diffuseColor.rgb *= mix(1.0, 0.78 + 0.44*soil, open*near);
-        float tuft = smoothstep(0.62, 0.8, vn(vWp.xz*67.0 + 3.0)) * (0.35 + cov.g*2.0);
-        diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb*vec3(0.55, 0.68, 0.5), min(1.0, tuft)*open*near*0.7);`);
+        float tuft = smoothstep(0.55, 0.68, vn(vWp.xz*67.0 + 3.0)*0.6 + vn(vWp.xz*29.0)*0.4) * (0.6 + cov.g*2.0);
+        diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb*vec3(0.42, 0.56, 0.4), min(1.0, tuft)*open*near*0.85);`);
   };
   // earth-coloured wall round the edge of the map, from the surface down to the plinth
   const edge = [];
@@ -136,13 +138,13 @@ export function buildSea(heights, dist) {
   const { w, h } = GRID;
   const data = new Uint8Array(w * h * 4);
   // mean land height within ~4 km of each cell (two box passes): high beside mountains, near zero off plains
-  const R = 16, relief = new Float32Array(w * h), tmp = new Float32Array(w * h);
+  const R = 40, relief = new Float32Array(w * h), tmp = new Float32Array(w * h);
   for (let j = 0; j < h; j++) { let s = 0; for (let i = -R; i < w; i++) { if (i + R < w) s += Math.max(0, heights[j * w + i + R]); if (i - R - 1 >= 0) s -= Math.max(0, heights[j * w + i - R - 1]); if (i >= 0) tmp[j * w + i] = s / (2 * R + 1); } }
   for (let i = 0; i < w; i++) { let s = 0; for (let j = -R; j < h; j++) { if (j + R < h) s += tmp[(j + R) * w + i]; if (j - R - 1 >= 0) s -= tmp[(j - R - 1) * w + i]; if (j >= 0) relief[j * w + i] = s / (2 * R + 1); } }
   for (let i = 0; i < w * h; i++) {
     const m = heights[i];
     // depth proxy: distance offshore, over a shelf that is narrow below steep coasts and wide off the deltas
-    data[i * 4] = m < 0.5 ? Math.min(255, (dist[i] / (1.0 + 13 * Math.exp(-relief[i] / 30))) * 255) : 0;
+    data[i * 4] = m < 0.5 ? Math.min(255, (dist[i] / (1.0 + 13 * Math.exp(-relief[i] / 22))) * 255) : 0;
     data[i * 4 + 1] = m >= 0.5 ? 255 : 0; // land mask
     data[i * 4 + 3] = 255;
   }
@@ -175,7 +177,7 @@ export function buildSea(heights, dist) {
         // (no point glitter: at map scale it read as debris on the water)
         vec3 v = normalize(cameraPosition - vWorld);
         c += uSun * 0.05 * pow(1.0 - v.y, 3.0); // soft sheen towards the horizon
-        c += 0.035 * (wave(vWorld.xz*2.3 + 1.7) + wave(vWorld.zx*5.1)) * (1.0 - smoothstep(4.0, 40.0, d)); // swell, close up // fades out before it can alias
+        c += 0.035 * (wave(vWorld.xz*2.3 + 1.7) + wave(vWorld.zx*5.1)) * (1.0 - smoothstep(4.0, 22.0, d)); // swell, close up // fades out before it can alias
         // surf line breathing against the shore
         float shore = smoothstep(0.15, 0.6, land);
         float foam = smoothstep(0.55, 0.9, shore + 0.18*sin(uTime*1.4 + vWorld.x*1.3 + vWorld.z*1.7)) * (1.0-smoothstep(0.9,1.0,land));
