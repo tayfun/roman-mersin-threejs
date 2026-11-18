@@ -90,20 +90,22 @@ export function buildTerrain(heights0, dist, step = 1, low = false, cover = null
           return mix(mix(h21(i), h21(i+vec2(1,0)), f.x), mix(h21(i+vec2(0,1)), h21(i+vec2(1,1)), f.x), f.y); }`)
       .replace('#include <map_fragment>', `#include <map_fragment>
         float dd = length(cameraPosition - vWp);
-        float near = 1.0 - smoothstep(3.0, 14.0, dd), mid = 1.0 - smoothstep(20.0, 120.0, dd);
+        float near = 1.0 - smoothstep(5.0, 32.0, dd), mid = 1.0 - smoothstep(20.0, 120.0, dd);
         vec3 cov = texture2D(uCover, vMapUv).rgb; // tree, shrub, crop fractions
         // forest: crowns as dark clumps, coarser with distance so woods keep a texture beyond the 3D trees
-        float crowns = vn(vWp.xz*7.0)*0.5 + vn(vWp.xz*19.0)*0.3 + vn(vWp.xz*53.0)*0.2;
-        float wood = cov.r * smoothstep(0.25, 0.6, crowns + cov.r*0.35);
-        diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb*vec3(0.5, 0.62, 0.46), wood*(0.25 + 0.3*mid));
+        float crowns = vn(vWp.xz*9.0)*0.4 + vn(vWp.xz*27.0)*0.35 + vn(vWp.xz*71.0)*0.25;
+        float wood = smoothstep(0.15, 0.6, cov.r) * smoothstep(0.3, 0.62, crowns + cov.r*0.3);
+        diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb*vec3(0.42, 0.56, 0.44), wood*(0.3 + 0.4*mid));
         // open ground close up: pale limestone outcrops and stones, darker maquis tufts
         float n = vn(vWp.xz*6.0)*0.5 + vn(vWp.xz*23.0)*0.3 + vn(vWp.xz*71.0)*0.2;
         diffuseColor.rgb *= mix(1.0, 0.84 + 0.32*n, 1.0 - smoothstep(6.0, 60.0, dd));
         float open = 1.0 - cov.r;
         float stone = smoothstep(0.6, 0.78, vn(vWp.xz*41.0 + 11.0)*0.6 + vn(vWp.xz*120.0)*0.4);
-        diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb*1.22 + 0.04, stone*open*near*0.7);
+        diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb*1.3 + 0.05, stone*open*near*0.85);
+        float soil = vn(vWp.xz*15.0 + 5.0)*0.6 + vn(vWp.xz*180.0)*0.4;
+        diffuseColor.rgb *= mix(1.0, 0.78 + 0.44*soil, open*near);
         float tuft = smoothstep(0.62, 0.8, vn(vWp.xz*67.0 + 3.0)) * (0.35 + cov.g*2.0);
-        diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb*vec3(0.55, 0.68, 0.5), min(1.0, tuft)*open*near*0.55);`);
+        diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb*vec3(0.55, 0.68, 0.5), min(1.0, tuft)*open*near*0.7);`);
   };
   // earth-coloured wall round the edge of the map, from the surface down to the plinth
   const edge = [];
@@ -115,14 +117,14 @@ export function buildTerrain(heights0, dist, step = 1, low = false, cover = null
   edge.forEach((k, n) => { sp.push(pos.getX(k), pos.getY(k), pos.getZ(k), pos.getX(k), -1.5, pos.getZ(k)); const a = n * 2, b = ((n + 1) % edge.length) * 2; si.push(a, b, a + 1, b, b + 1, a + 1); });
   const skirtGeo = new THREE.BufferGeometry();
   skirtGeo.setAttribute('position', new THREE.Float32BufferAttribute(sp, 3)); skirtGeo.setIndex(si); skirtGeo.computeVertexNormals();
-  const skirt = new THREE.Mesh(skirtGeo, new THREE.MeshStandardMaterial({ color: 0x6b5a45, roughness: 1, side: THREE.DoubleSide }));
+  const skirt = new THREE.Mesh(skirtGeo, new THREE.MeshStandardMaterial({ color: 0x8a745a, roughness: 1, side: THREE.DoubleSide }));
   const land = new THREE.Mesh(geo, mat);
   land.receiveShadow = true;
 
   // table-model plinth under the terrain
   const base = new THREE.Mesh(
     new THREE.BoxGeometry(WORLD.w + 5, 5, WORLD.d + 5),
-    new THREE.MeshStandardMaterial({ color: 0x4d3d2c, roughness: 0.8 }),
+    new THREE.MeshStandardMaterial({ color: 0x7a6650, roughness: 0.9 }),
   );
   base.position.y = -3.9;
   const g = new THREE.Group();
@@ -140,7 +142,7 @@ export function buildSea(heights, dist) {
   for (let i = 0; i < w * h; i++) {
     const m = heights[i];
     // depth proxy: distance offshore, over a shelf that is narrow below steep coasts and wide off the deltas
-    data[i * 4] = m < 0.5 ? Math.min(255, (dist[i] / (1.3 + 15 * Math.exp(-relief[i] / 35))) * 255) : 0;
+    data[i * 4] = m < 0.5 ? Math.min(255, (dist[i] / (1.0 + 13 * Math.exp(-relief[i] / 30))) * 255) : 0;
     data[i * 4 + 1] = m >= 0.5 ? 255 : 0; // land mask
     data[i * 4 + 3] = 255;
   }
@@ -172,7 +174,8 @@ export function buildSea(heights, dist) {
         c += 0.03*wave(vWorld.xz*0.9) * (1.0 - smoothstep(30.0, 110.0, d)); // ripples only where they resolve
         // (no point glitter: at map scale it read as debris on the water)
         vec3 v = normalize(cameraPosition - vWorld);
-        c += uSun * 0.05 * pow(1.0 - v.y, 3.0); // soft sheen towards the horizon // fades out before it can alias
+        c += uSun * 0.05 * pow(1.0 - v.y, 3.0); // soft sheen towards the horizon
+        c += 0.035 * (wave(vWorld.xz*2.3 + 1.7) + wave(vWorld.zx*5.1)) * (1.0 - smoothstep(4.0, 40.0, d)); // swell, close up // fades out before it can alias
         // surf line breathing against the shore
         float shore = smoothstep(0.15, 0.6, land);
         float foam = smoothstep(0.55, 0.9, shore + 0.18*sin(uTime*1.4 + vWorld.x*1.3 + vWorld.z*1.7)) * (1.0-smoothstep(0.9,1.0,land));

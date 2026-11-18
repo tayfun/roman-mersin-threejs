@@ -86,7 +86,7 @@ const sound = new Sound();
 const siteObjs = [];
 const GROUNDED = 0.012; // model height at which a diorama's own ground is flush with the map
 let sampleH = () => 0;
-let sea, roadGroup, roadMats = [], riverMat, trees, ships = [], clouds = [], mapLabels = [];
+let sea, roadGroup, roadMats = [], riverMat, riverGhost, trees, ships = [], clouds = [], mapLabels = [];
 const groundY = (x, z) => metresToY(Math.max(sampleH(x, z), 0));
 
 // ---------- build world ----------
@@ -189,6 +189,9 @@ function buildSites() {
 function buildRivers() {
   // valley-floor traces from the DEM (tools/trace_rivers.py)
   riverMat = new LineMaterial({ color: 0x3f9fc4, linewidth: 3, transparent: true, opacity: 0.95, depthWrite: false });
+  // a faint second pass shows a river's course where a ridge hides its gorge
+  const ghost = new LineMaterial({ color: 0x3f9fc4, linewidth: 2, transparent: true, opacity: 0.28, depthWrite: false, depthTest: false });
+  riverGhost = ghost;
   for (const pts of Object.values(RIVERS)) {
     const flat = [];
     // the traces step from cell to cell; every third point through a spline gives a natural course
@@ -197,7 +200,7 @@ function buildRivers() {
     for (const p of curve.getSpacedPoints(pts.length * 10)) flat.push(p.x, groundY(p.x, p.z) + 0.08, p.z);
     const line = new Line2(new LineGeometry().setPositions(flat), riverMat);
     line.renderOrder = 1;
-    scene.add(line);
+    scene.add(line, new Line2(line.geometry, ghost));
   }
 }
 
@@ -293,7 +296,9 @@ function buildTrees(cover) {
     const add = (kind, x, z, y, s) => (list[kind] ||= []).push(x, y, z, s);
     for (let j = bz * CH; j < Math.min(GRID.h, (bz + 1) * CH); j++) for (let i = bx * CH; i < Math.min(GRID.w, (bx + 1) * CH); i++) {
       const k = (j * GRID.w + i) * 4, tree = cover[k] / 255, shrub = cover[k + 1] / 255, crop = cover[k + 2] / 255;
-      let n = tree * 3 * dens + shrub * 0.4 * dens + crop * 0.15 * dens;
+      // clumped: stands and clearings rather than an even sprinkle
+      const clump = 0.35 + 1.3 * (0.5 + 0.5 * Math.sin(i * 0.37 + Math.sin(j * 0.23) * 2.1) * Math.cos(j * 0.31 + Math.sin(i * 0.19) * 1.7));
+      let n = (tree * tree * 5 + shrub * 0.7 + crop * 0.15) * dens * clump;
       for (; n > 0; n--) {
         if (n < 1 && rnd() > n) break;
         const x = (i + rnd() - 0.5) * cellW - WORLD.w / 2, z = (j + rnd() - 0.5) * cellD - WORLD.d / 2, h = sampleH(x, z);
@@ -306,7 +311,7 @@ function buildTrees(cover) {
             : e < 1000 ? (u < 0.9 ? 'brutia' : 'carob') : e < 1350 ? (u < 0.6 ? 'nigra' : 'brutia') : e < 2000 ? (u < 0.45 ? 'cedar' : u < 0.75 ? 'fir' : u < 0.9 ? 'nigra' : 'juniper') : 'juniper';
         } else if (r < tree + shrub) kind = h < 900 ? 'maquis' : 'juniper';
         else kind = h < 500 ? (u < 0.7 ? 'olive' : 'carob') : 'olive';
-        const s = (kind === 'maquis' ? 0.5 : kind === 'juniper' ? 0.8 : 1.25) * (0.6 + rnd() * 0.8);
+        const s = (kind === 'maquis' ? 0.5 : kind === 'juniper' ? 0.8 : 1.25) * (0.5 + rnd() * rnd() * 1.4);
         add(kind, x, z, metresToY(h) - 0.004, s);
       }
     }
@@ -693,7 +698,7 @@ function resize() {
   applyViewOffset();
   controls.maxDistance = Math.max(450, overviewPose().pos.distanceTo(OVERVIEW.target) * 1.15);
   for (const o of siteObjs) o.w = 0;
-  for (const m of [...roadMats, riverMat]) m && m.resolution.set(w, h);
+  for (const m of [...roadMats, riverMat, riverGhost]) m && m.resolution.set(w, h);
 }
 
 // drop shadows and retina resolution if the device cannot keep up

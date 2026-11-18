@@ -221,7 +221,7 @@ def main():
     grain = (noise(TEX_H, TEX_W, 4, 21) - 0.5) * 0.22 + (noise(TEX_H, TEX_W, 14, 22) - 0.5) * 0.16
     col[modern] *= (1 + grain[modern])[:, None]
     # the plains: today's ruler-straight parcels (and an airfield) soften into a mottled patchwork of fields
-    plain = land & (lc == 40) & (ht < 250) & ~modern
+    plain = land & ((lc == 40) & (ht < 250) | np.isin(lc, (30, 40, 50, 60)) & (ht < 60)) & ~modern
     soft = np.stack([box(box(col[..., k], 5), 5) for k in range(3)], -1)
     mosaic = (noise(TEX_H, TEX_W, 7, 31) - 0.5) * 0.2 + (noise(TEX_H, TEX_W, 22, 32) - 0.5) * 0.14
     col[plain] = soft[plain] * (1 + mosaic[plain])[:, None]
@@ -231,6 +231,7 @@ def main():
     col *= np.array([0.97, 1.0, 0.98], np.float32)
     # the mosaic carries its own terrain shadows and the scene lights it again: open up the darkest tones
     lum2 = col.mean(-1, keepdims=True); col += np.clip(0.3 - lum2, 0, 1) * 0.45
+    col -= np.clip(lum2 - 0.66, 0, 1) * 0.55  # and hold back the glare of the bare limestone plateau
     # the high Taurus is pale grey limestone and scree, not the ochre of a low-sun mosaic
     alp = np.clip((box(ht, 2) - 2200) / 500, 0, 1)[..., None] * 0.6
     grey = col.mean(-1, keepdims=True) * np.array([0.98, 0.99, 1.02], np.float32) * 1.12
